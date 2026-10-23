@@ -275,3 +275,27 @@ QTableWidget QScrollBar::add-line:vertical,
 QTableWidget QScrollBar::sub-line:vertical {
     height: 0;
 }
+
+QLabel#metricValue {
+    color: #1769D2;
+    font-size: 26px;
+    font-weight: 800;
+    padding-top: 4px;
+}
+
+QFrame#dashboardCard {
+    background-color: #FFFFFF;
+    border: 1px solid #D6E3F2;
+    border-radius: 14px;
+}
+
+QLabel#cardTitle {
+    color: #124A9C;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+QLabel#cardDescription {
+    color: #63748B;
+    font-size: 12px;
+}
