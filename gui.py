@@ -1,6 +1,9 @@
 import os
+import json
 
-from PyQt6.QtCore import Qt
+from backend.patient_history_service import PatientHistoryService
+from datetime import datetime
+from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtWidgets import (
     QMenu,
     QGridLayout,
@@ -27,6 +30,7 @@ from PyQt6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QHeaderView,
+    QDateEdit
 
 )
 from PyQt6.QtGui import QIntValidator
@@ -410,16 +414,211 @@ class RegistrationDialog(QDialog):
             )
 
 
-class PatientRegistrationDialog(QDialog):
-    def __init__(self, parent=None):
+class PatientHistoryDialog(QDialog):
+    def __init__(self, patient, history_service, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Register New Patient")
+        self.patient = patient
+        self.history_service = history_service
+        self.versions = []
+
+        self.setWindowTitle("Patient Record History")
+        self.resize(850, 700)
+
+        layout = QVBoxLayout(self)
+
+        title = QLabel("Patient Record History")
+        title.setObjectName("cardTitle")
+        layout.addWidget(title)
+
+        patient_info = QLabel(
+            f"Patient: {patient.get('full_name', 'Unknown')}\n"
+            f"Patient ID: {patient.get('patient_id', 'Unknown')}"
+        )
+        patient_info.setWordWrap(True)
+        layout.addWidget(patient_info)
+
+        layout.addWidget(QLabel("Select record version:"))
+
+        self.version_combo = QComboBox()
+        self.version_combo.currentIndexChanged.connect(
+            self.display_selected_version
+        )
+        layout.addWidget(self.version_combo)
+
+        self.record_display = QTextEdit()
+        self.record_display.setReadOnly(True)
+        self.record_display.setLineWrapMode(
+            QTextEdit.LineWrapMode.WidgetWidth
+        )
+        layout.addWidget(self.record_display, 1)
+
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.accept)
+        layout.addWidget(
+            close_button,
+            alignment=Qt.AlignmentFlag.AlignRight
+        )
+
+        self.load_versions()
+
+    def load_versions(self):
+        success, result = self.history_service.get_patient_history(
+            self.patient.get("patient_id", "")
+        )
+
+        if not success:
+            self.record_display.setPlainText(
+                f"Unable to load patient history.\n\n{result}"
+            )
+            self.version_combo.setEnabled(False)
+            return
+
+        self.versions = result
+
+        if not self.versions:
+            self.record_display.setPlainText(
+                "No saved versions were found for this patient."
+            )
+            self.version_combo.setEnabled(False)
+            return
+
+        for entry in self.versions:
+            version_number = entry.get("version", "?")
+            change_type = entry.get("change_type", "UPDATE")
+            staff = entry.get("updated_by", "Unknown staff")
+            timestamp = entry.get("updated_at", "Unknown date")
+
+            try:
+                readable_time = datetime.fromisoformat(
+                    timestamp.replace("Z", "+00:00")
+                ).astimezone().strftime("%b %d, %Y at %I:%M %p")
+            except (ValueError, TypeError):
+                readable_time = timestamp
+
+            if change_type == "CREATE":
+                description = "Initial Record"
+            else:
+                description = "Updated Record"
+
+            self.version_combo.addItem(
+                f"Version {version_number} — {description} | "
+                f"{readable_time} | Staff: {staff}"
+            )
+
+        # Show the latest saved version first.
+        self.version_combo.setCurrentIndex(
+            self.version_combo.count() - 1
+        )
+
+    def display_selected_version(self, index):
+        if index < 0 or index >= len(self.versions):
+            return
+
+        entry = self.versions[index]
+        snapshot = entry.get("record_snapshot", {})
+        changes = entry.get("changed_fields", {})
+
+        lines = []
+
+        def add_section(title, fields):
+            lines.append(title.upper())
+            lines.append("=" * len(title))
+
+            for label, key in fields:
+                value = snapshot.get(key, "")
+                if value is None or str(value).strip() == "":
+                    value = "Not recorded"
+
+                lines.append(f"{label}: {value}")
+
+            lines.append("")
+
+        lines.append(
+            f"VERSION {entry.get('version', '?')} — "
+            f"{entry.get('change_type', 'UPDATE')}"
+        )
+        lines.append(
+            f"Updated by: {entry.get('updated_by', 'Unknown staff')}"
+        )
+        lines.append(
+            f"Timestamp: {entry.get('updated_at', 'Unknown date')}"
+        )
+        lines.append("")
+
+        add_section("Personal Information", [
+            ("Patient ID", "patient_id"),
+            ("Full Name", "full_name"),
+            ("Date of Birth", "date_of_birth"),
+            ("Age at This Version", "age"),
+            ("Sex", "sex"),
+            ("Contact Number", "contact_number"),
+            ("Address", "address"),
+            ("Emergency Contact", "emergency_contact"),
+            ("Date Registered", "date_registered"),
+        ])
+
+        add_section("Medical History", [
+            ("Diagnosis", "diagnosis"),
+            ("Diagnosis Date", "diagnosis_date"),
+            ("Medical History", "medical_history"),
+            ("Other Conditions", "conditions"),
+            ("Allergies", "allergies"),
+            ("Current Medications", "current_medications"),
+            ("Clinical Notes", "clinical_notes"),
+        ])
+
+        add_section("Treatment Information", [
+            ("Attending Physician", "attending_physician"),
+            ("ARV Regimen", "arv_regimen"),
+            ("Treatment Start Date", "treatment_start"),
+            ("Treatment Status", "treatment_status"),
+            ("Next Appointment", "next_appointment"),
+            ("Follow-up Notes", "follow_up_notes"),
+        ])
+
+        lines.append("CHANGES IN THIS VERSION")
+        lines.append("=======================")
+
+        if not changes:
+            lines.append(
+                "No individual field changes were recorded."
+            )
+        else:
+            for field, values in changes.items():
+                if isinstance(values, dict):
+                    previous = values.get("previous", "Not recorded")
+                    new = values.get("new", "Not recorded")
+
+                    lines.append(f"{field.replace('_', ' ').title()}")
+                    lines.append(f"  Previous: {previous}")
+                    lines.append(f"  New: {new}")
+                else:
+                    lines.append(f"{field}: {values}")
+
+                lines.append("")
+
+        self.record_display.setPlainText("\n".join(lines))
+        self.record_display.moveCursor(
+            self.record_display.textCursor().MoveOperation.Start
+        )
+
+
+class PatientRegistrationDialog(QDialog):
+    def __init__(self, parent=None, patient=None):
+        super().__init__(parent)
+
+        self.patient = patient or {}
+
+        self.setWindowTitle(
+            "Edit Patient Record" if patient else "Register New Patient"
+        )
+
         self.resize(760, 620)
 
         main_layout = QVBoxLayout(self)
 
-        title = QLabel("Patient Registration")
+        title = QLabel("Edit Patient Record" if patient else "Patient Registration")
         title.setObjectName("cardTitle")
         main_layout.addWidget(title)
 
@@ -433,8 +632,14 @@ class PatientRegistrationDialog(QDialog):
         self.full_name = QLineEdit()
         self.full_name.setPlaceholderText("Full name")
 
-        self.date_of_birth = QLineEdit()
-        self.date_of_birth.setPlaceholderText("YYYY-MM-DD")
+        self.date_of_birth = QDateEdit()
+        self.date_of_birth.setCalendarPopup(True)
+        self.date_of_birth.setDisplayFormat("yyyy-MM-dd")
+        self.date_of_birth.setDateRange(
+            QDate(1900, 1, 1),
+            QDate.currentDate()
+        )
+        self.date_of_birth.setDate(QDate.currentDate())
 
         self.sex = QComboBox()
         self.sex.addItems([
@@ -476,10 +681,15 @@ class PatientRegistrationDialog(QDialog):
             "Enter diagnosis as documented by the clinician"
         )
 
-        self.diagnosis_date = QLineEdit()
-        self.diagnosis_date.setPlaceholderText(
-            "YYYY-MM-DD (optional)"
+        self.diagnosis_date = QDateEdit()
+        self.diagnosis_date.setCalendarPopup(True)
+        self.diagnosis_date.setDisplayFormat("yyyy-MM-dd")
+        self.diagnosis_date.setSpecialValueText("Not set")
+        self.diagnosis_date.setDateRange(
+            QDate(1900, 1, 1),
+            QDate.currentDate()
         )
+        self.diagnosis_date.setDate(QDate(1900, 1, 1))
 
         self.medical_history = QTextEdit()
         self.medical_history.setPlaceholderText(
@@ -533,10 +743,15 @@ class PatientRegistrationDialog(QDialog):
             "Regimen as prescribed by the clinician"
         )
 
-        self.treatment_start = QLineEdit()
-        self.treatment_start.setPlaceholderText(
-            "YYYY-MM-DD (optional)"
+        self.treatment_start = QDateEdit()
+        self.treatment_start.setCalendarPopup(True)
+        self.treatment_start.setDisplayFormat("yyyy-MM-dd")
+        self.treatment_start.setDateRange(
+            QDate(1900, 1, 1),
+            QDate.currentDate()
         )
+        self.treatment_start.setSpecialValueText("Not set")
+        self.treatment_start.setDate(QDate(1900, 1, 1))
 
         self.treatment_status = QComboBox()
         self.treatment_status.addItems([
@@ -547,10 +762,15 @@ class PatientRegistrationDialog(QDialog):
             "Transferred",
         ])
 
-        self.next_appointment = QLineEdit()
-        self.next_appointment.setPlaceholderText(
-            "YYYY-MM-DD (optional)"
+        self.next_appointment = QDateEdit()
+        self.next_appointment.setCalendarPopup(True)
+        self.next_appointment.setDisplayFormat("yyyy-MM-dd")
+        self.next_appointment.setSpecialValueText("Not scheduled")
+        self.next_appointment.setDateRange(
+            QDate(1900, 1, 1),
+            QDate(2100, 12, 31)
         )
+        self.next_appointment.setDate(QDate(1900, 1, 1))
 
         self.follow_up_notes = QTextEdit()
         self.follow_up_notes.setPlaceholderText(
@@ -582,17 +802,36 @@ class PatientRegistrationDialog(QDialog):
 
         buttons.button(
             QDialogButtonBox.StandardButton.Save
-        ).setText("Save Patient")
+        ).setText(
+            "Update Patient" if patient else "Save Patient"
+        )
 
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
         main_layout.addWidget(buttons)
 
+        if patient:
+            self.set_patient_data(patient)
+
+            # Lock identifying information during routine updates.
+            self.full_name.setReadOnly(True)
+            self.date_of_birth.setEnabled(False)
+            self.sex.setEnabled(False)
+            self.contact_number.setReadOnly(True)
+            self.address.setReadOnly(True)
+            self.emergency_contact.setReadOnly(True)
+
+            # Keep diagnosis and medical history read-only too.
+            self.diagnosis.setReadOnly(False)
+            self.diagnosis_date.setEnabled(True)
+            self.medical_history.setReadOnly(True)
+            self.conditions.setReadOnly(True)
+
     def get_patient_data(self):
         return {
             "full_name": self.full_name.text().strip(),
-            "date_of_birth": self.date_of_birth.text().strip(),
+            "date_of_birth": self.date_of_birth.date().toString("yyyy-MM-dd"),
             "sex": self.sex.currentText(),
             "contact_number": self.contact_number.text().strip(),
             "address": self.address.toPlainText().strip(),
@@ -600,7 +839,10 @@ class PatientRegistrationDialog(QDialog):
                 self.emergency_contact.text().strip()
             ),
             "diagnosis": self.diagnosis.text().strip(),
-            "diagnosis_date": self.diagnosis_date.text().strip(),
+            "diagnosis_date": (
+                ""
+                if self.diagnosis_date.date() == QDate(1900, 1, 1)
+                else self.diagnosis_date.date().toString("yyyy-MM-dd")),
             "medical_history": (
                 self.medical_history.toPlainText().strip()
             ),
@@ -617,16 +859,322 @@ class PatientRegistrationDialog(QDialog):
             "attending_physician": self.physician.text().strip(),
             "arv_regimen": self.arv_regimen.text().strip(),
             "treatment_start_date": (
-                self.treatment_start.text().strip()
+                ""
+                if self.treatment_start.date() == QDate(1900, 1, 1)
+                else self.treatment_start.date().toString("yyyy-MM-dd")
             ),
             "treatment_status": self.treatment_status.currentText(),
             "next_appointment": (
-                self.next_appointment.text().strip()
+                ""
+                if self.next_appointment.date() == QDate(1900, 1, 1)
+                else self.next_appointment.date().toString("yyyy-MM-dd")
             ),
             "follow_up_notes": (
                 self.follow_up_notes.toPlainText().strip()
             ),
         }
+
+    def set_patient_data(self, patient):
+        self.full_name.setText(str(patient.get("full_name", "")))
+        dob = QDate.fromString(
+            str(patient.get("date_of_birth", "")),
+            "yyyy-MM-dd"
+        )
+
+        if dob.isValid():
+            self.date_of_birth.setDate(dob)
+
+        sex = patient.get("sex", "Prefer not to specify")
+        index = self.sex.findText(sex)
+        if index >= 0:
+            self.sex.setCurrentIndex(index)
+
+        self.contact_number.setText(
+            str(patient.get("contact_number", ""))
+        )
+        self.address.setPlainText(str(patient.get("address", "")))
+        self.emergency_contact.setText(
+            str(patient.get("emergency_contact", ""))
+        )
+        diagnosis_date = QDate.fromString(
+            str(patient.get("diagnosis_date", "")),
+            "yyyy-MM-dd"
+        )
+
+        self.diagnosis_date.setDate(
+            diagnosis_date
+            if diagnosis_date.isValid()
+            else QDate(1900, 1, 1)
+        )
+        self.medical_history.setPlainText(
+            str(patient.get("medical_history", ""))
+        )
+        self.conditions.setPlainText(
+            str(patient.get("conditions", ""))
+        )
+        self.allergies.setPlainText(str(patient.get("allergies", "")))
+        self.current_medications.setPlainText(
+            str(patient.get("current_medications", ""))
+        )
+        self.clinical_notes.setPlainText(
+            str(patient.get("clinical_notes", ""))
+        )
+
+        self.physician.setText(
+            str(patient.get("attending_physician", ""))
+        )
+        self.arv_regimen.setText(str(patient.get("arv_regimen", "")))
+        treatment_start = QDate.fromString(
+            str(patient.get("treatment_start", "")),
+            "yyyy-MM-dd"
+        )
+
+        self.treatment_start.setDate(
+            treatment_start
+            if treatment_start.isValid()
+            else QDate(1900, 1, 1)
+        )
+
+        status = patient.get("treatment_status", "Not specified")
+        index = self.treatment_status.findText(status)
+        if index >= 0:
+            self.treatment_status.setCurrentIndex(index)
+
+        next_appointment = QDate.fromString(str(patient.get("next_appointment", "")),"yyyy-MM-dd")
+        self.next_appointment.setDate(
+            next_appointment
+            if next_appointment.isValid()
+            else QDate(1900, 1, 1)
+        )
+        self.follow_up_notes.setPlainText(
+            str(patient.get("follow_up_notes", ""))
+        )
+
+class PatientHistoryDialog(QDialog):
+    def __init__(self, patient, history_service, parent=None):
+        super().__init__(parent)
+
+        self.patient = patient
+        self.history_service = history_service
+        self.history_entries = []
+
+        patient_id = patient.get("patient_id", "Unknown")
+
+        self.setWindowTitle("Patient Record History")
+        self.resize(1000, 700)
+
+        layout = QVBoxLayout(self)
+
+        title = QLabel("Patient Record History")
+        title.setObjectName("cardTitle")
+        layout.addWidget(title)
+
+        description = QLabel(
+            f"Patient: {patient.get('full_name', 'Unknown')}\n"
+            f"Patient ID: {patient_id}\n"
+            "Select a saved version to view the complete record."
+        )
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        layout.addWidget(QLabel("Saved Versions"))
+
+        self.version_table = QTableWidget()
+        self.version_table.setColumnCount(4)
+        self.version_table.setHorizontalHeaderLabels([
+            "Version",
+            "Change Type",
+            "Date and Time",
+            "Updated By"
+        ])
+        self.version_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.version_table.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
+        self.version_table.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
+        self.version_table.setAlternatingRowColors(True)
+        self.version_table.verticalHeader().setVisible(False)
+
+        header = self.version_table.horizontalHeader()
+        header.setSectionResizeMode(
+            QHeaderView.ResizeMode.ResizeToContents
+        )
+        header.setStretchLastSection(True)
+
+        layout.addWidget(self.version_table, 1)
+        layout.addWidget(QLabel("Selected Version Details"))
+
+        self.snapshot_view = QTextEdit()
+        self.snapshot_view.setReadOnly(True)
+        self.snapshot_view.setLineWrapMode(
+            QTextEdit.LineWrapMode.WidgetWidth
+        )
+        layout.addWidget(self.snapshot_view, 2)
+
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.accept)
+        layout.addWidget(
+            close_button,
+            alignment=Qt.AlignmentFlag.AlignRight
+        )
+
+        self.version_table.cellClicked.connect(
+            self.show_selected_version
+        )
+
+        self.populate_versions()
+
+    def populate_versions(self):
+        success, result = self.history_service.get_patient_history(
+            self.patient.get("patient_id", "")
+        )
+
+        if not success:
+            QMessageBox.warning(
+                self,
+                "History Error",
+                str(result)
+            )
+            return
+
+        self.history_entries = sorted(
+            result,
+            key=lambda entry: entry.get("version", 0),
+            reverse=True
+        )
+
+        self.version_table.setRowCount(0)
+
+        for entry in self.history_entries:
+            row = self.version_table.rowCount()
+            self.version_table.insertRow(row)
+
+            timestamp = entry.get("updated_at", "")
+            try:
+                readable_time = datetime.fromisoformat(
+                    timestamp.replace("Z", "+00:00")
+                ).astimezone().strftime("%b %d, %Y at %I:%M %p")
+            except (ValueError, TypeError):
+                readable_time = timestamp or "Unknown date"
+
+            change_type = entry.get("change_type", "UPDATE")
+            if change_type == "CREATE":
+                change_type = "Initial Record"
+
+            values = [
+                f"Version {entry.get('version', '?')}",
+                change_type,
+                readable_time,
+                entry.get("updated_by", "Unknown staff")
+            ]
+
+            for column, value in enumerate(values):
+                self.version_table.setItem(
+                    row,
+                    column,
+                    QTableWidgetItem(str(value))
+                )
+
+        if self.version_table.rowCount() > 0:
+            self.version_table.selectRow(0)
+            self.show_selected_version(0, 0)
+        else:
+            self.snapshot_view.setPlainText(
+                "No saved history versions were found for this patient."
+            )
+
+    def show_selected_version(self, row, column):
+        if row < 0 or row >= len(self.history_entries):
+            return
+
+        entry = self.history_entries[row]
+        record = entry.get("record_snapshot", {})
+        changes = entry.get("changed_fields", {})
+
+        lines = []
+
+        def add_section(title, fields):
+            lines.append(title.upper())
+            lines.append("=" * len(title))
+
+            for label, key in fields:
+                value = record.get(key)
+
+                if value is None or str(value).strip() == "":
+                    value = "Not recorded"
+
+                lines.append(f"{label}: {value}")
+
+            lines.append("")
+
+        lines.extend([
+            f"VERSION {entry.get('version', '?')}",
+            f"Change Type: {entry.get('change_type', 'UPDATE')}",
+            f"Updated By: {entry.get('updated_by', 'Unknown staff')}",
+            f"Updated At: {entry.get('updated_at', 'Unknown date')}",
+            ""
+        ])
+
+        add_section("Personal Information", [
+            ("Patient ID", "patient_id"),
+            ("Full Name", "full_name"),
+            ("Date of Birth", "date_of_birth"),
+            ("Age at This Version", "age"),
+            ("Sex", "sex"),
+            ("Contact Number", "contact_number"),
+            ("Address", "address"),
+            ("Emergency Contact", "emergency_contact"),
+            ("Date Registered", "date_registered"),
+        ])
+
+        add_section("Medical History", [
+            ("Diagnosis", "diagnosis"),
+            ("Diagnosis Date", "diagnosis_date"),
+            ("Medical History", "medical_history"),
+            ("Other Conditions", "conditions"),
+            ("Allergies", "allergies"),
+            ("Current Medications", "current_medications"),
+            ("Clinical Notes", "clinical_notes"),
+        ])
+
+        add_section("Treatment Information", [
+            ("Attending Physician", "attending_physician"),
+            ("ARV Regimen", "arv_regimen"),
+            ("Treatment Start Date", "treatment_start"),
+            ("Treatment Status", "treatment_status"),
+            ("Next Appointment", "next_appointment"),
+            ("Follow-up Notes", "follow_up_notes"),
+        ])
+
+        lines.append("CHANGES IN THIS VERSION")
+        lines.append("=======================")
+
+        if not changes:
+            lines.append("No individual field changes were recorded.")
+        else:
+            for field, values in changes.items():
+                lines.append(field.replace("_", " ").title())
+
+                if isinstance(values, dict):
+                    previous = values.get("previous", "Not recorded")
+                    new = values.get("new", "Not recorded")
+                    lines.append(f"  Previous: {previous}")
+                    lines.append(f"  New: {new}")
+                else:
+                    lines.append(f"  {values}")
+
+                lines.append("")
+
+        self.snapshot_view.setPlainText("\n".join(lines))
+        self.snapshot_view.moveCursor(
+            self.snapshot_view.textCursor().MoveOperation.Start
+        )
+
+
 
 class MedicineDialog(QDialog):
     def __init__(self, medicine=None, parent=None):
@@ -1109,7 +1657,8 @@ class DashboardWindow(QMainWindow):
             ("Patient Records", 1),
             ("Inventory", 2),
             ("Allocation", 3),
-            ("Reports", 4),
+            ("Schedule", 4),
+            ("Reports", 5),
         ]
 
         for label, page_index in actions:
@@ -1128,7 +1677,6 @@ class DashboardWindow(QMainWindow):
         return page
 
 
-    
     def create_patients_page(self):
         self.patient_service = PatientService()
 
@@ -1157,6 +1705,14 @@ class DashboardWindow(QMainWindow):
             self.open_patient_registration
         )
 
+        edit_button = QPushButton("Edit Selected")
+        edit_button.setObjectName("linkButton")
+        edit_button.clicked.connect(self.edit_patient_record)
+
+        history_button = QPushButton("View History")
+        history_button.setObjectName("linkButton")
+        history_button.clicked.connect(self.view_patient_history)
+
         self.patient_search_input = QLineEdit()
         self.patient_search_input.setPlaceholderText(
             "Search by patient ID or name"
@@ -1184,6 +1740,8 @@ class DashboardWindow(QMainWindow):
         )
 
         actions.addWidget(add_button)
+        actions.addWidget(edit_button)
+        actions.addWidget(history_button)
         actions.addWidget(self.patient_search_input, 1)
         actions.addWidget(search_button)
         actions.addWidget(refresh_button)
@@ -1238,6 +1796,8 @@ class DashboardWindow(QMainWindow):
 
         layout.addWidget(self.patient_table, 1)
 
+        self.patient_table.cellDoubleClicked.connect(
+        lambda row, column: self.view_patient_history())
 
         self.load_patient_records()
         return page
@@ -1250,9 +1810,7 @@ class DashboardWindow(QMainWindow):
 
         profile = dialog.get_patient_data()
 
-        success, result = self.patient_service.add_patient_profile(
-            profile
-        )
+        success, result = self.patient_service.add_patient_profile(profile, created_by=self.user.get("staff_id", ""))
 
         if not success:
             QMessageBox.warning(
@@ -1317,6 +1875,116 @@ class DashboardWindow(QMainWindow):
     def refresh_patient_records(self):
         self.patient_search_input.clear()
         self.load_patient_records()
+
+    
+    def edit_patient_record(self):
+        row = self.patient_table.currentRow()
+
+        if row < 0:
+            QMessageBox.warning(
+                self,
+                "No Selection",
+                "Select a patient record first."
+            )
+            return
+
+        item = self.patient_table.item(row, 0)
+
+        if item is None:
+            return
+
+        patient_id = item.text()
+
+        success, patient = self.patient_service.get_patient_by_id(
+            patient_id
+        )
+
+        if not success:
+            QMessageBox.warning(
+                self,
+                "Patient Not Found",
+                str(patient)
+            )
+            return
+
+        dialog = PatientRegistrationDialog(
+            parent=self,
+            patient=patient
+        )
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        success, result = self.patient_service.update_patient_profile(
+            patient_id,
+            dialog.get_patient_data(),
+            updated_by=self.user.get("staff_id", "")
+        )
+
+        if not success:
+            QMessageBox.warning(
+                self,
+                "Update Failed",
+                str(result)
+            )
+            return
+
+        if isinstance(result, str):
+            QMessageBox.information(
+                self,
+                "No Changes",
+                result
+            )
+        else:
+            QMessageBox.information(
+                self,
+                "Patient Updated",
+                "Patient record updated successfully."
+            )
+
+        self.load_patient_records(
+            self.patient_search_input.text()
+        )
+
+    def view_patient_history(self):
+        row = self.patient_table.currentRow()
+
+        if row < 0:
+            QMessageBox.warning(
+                self,
+                "No Patient Selected",
+                "Select or double-click a patient record first."
+            )
+            return
+
+        item = self.patient_table.item(row, 0)
+
+        if item is None:
+            return
+
+        patient_id = item.text()
+
+        success, patient = self.patient_service.get_patient_by_id(
+            patient_id
+        )
+
+        if not success:
+            QMessageBox.warning(
+                self,
+                "Patient Not Found",
+                str(patient)
+            )
+            return
+
+        history_service = PatientHistoryService()
+
+        dialog = PatientHistoryDialog(
+            patient=patient,
+            history_service=history_service,
+            parent=self
+        )
+
+        dialog.exec()
 
     def delete_patient_record(self):
         row = self.patient_table.currentRow()
