@@ -1,4 +1,3 @@
-
 import os
 
 from PyQt6.QtCore import Qt
@@ -35,6 +34,7 @@ from PyQt6.QtGui import QIntValidator
 from backend.auth_service import AuthService
 from backend.patient_service import PatientService
 from backend.inventory_service import InventoryService
+from allocation_page import AllocationPage
 
 
 def load_stylesheet():
@@ -903,12 +903,10 @@ class DashboardWindow(QMainWindow):
         self.pages.addWidget(self.create_patients_page())   # Index 1: Patient Record
         self.pages.addWidget(self.create_inventory_page()) # Index 2: Inventory
 
-        self.pages.addWidget(
-            self.create_placeholder_page(
-                "Allocation",
-                "Manage and track medicine allocations."
-            )
-        )  # Index 3: Allocation
+        self.allocation_page = AllocationPage(
+            self.user, on_change=self.refresh_inventory
+        )
+        self.pages.addWidget(self.allocation_page)  # Index 3: Allocation
 
         self.pages.addWidget(
             self.create_placeholder_page(
