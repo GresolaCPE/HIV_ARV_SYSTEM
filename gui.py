@@ -35,7 +35,7 @@ from backend.auth_service import AuthService
 from backend.patient_service import PatientService
 from backend.inventory_service import InventoryService
 from allocation_page import AllocationPage
-
+from backend.security_service import SecurityService
 
 def load_stylesheet():
     """Load the separate QSS stylesheet."""
@@ -411,10 +411,16 @@ class RegistrationDialog(QDialog):
 
 
 class PatientRegistrationDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, patient=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Register New Patient")
+        self.patient = patient or {}
+
+        self.setWindowTitle(
+            "Edit Patient Record"
+            if self.patient
+            else "Register New Patient"
+        )
         self.resize(760, 620)
 
         main_layout = QVBoxLayout(self)
@@ -589,6 +595,74 @@ class PatientRegistrationDialog(QDialog):
 
         main_layout.addWidget(buttons)
 
+                # Fill the form when editing an existing patient.
+        if self.patient:
+            self.full_name.setText(
+                str(self.patient.get("full_name", ""))
+            )
+            self.date_of_birth.setText(
+                str(self.patient.get("date_of_birth", ""))
+            )
+            self.sex.setCurrentText(
+                str(self.patient.get("sex", "Prefer not to specify"))
+            )
+            self.contact_number.setText(
+                str(self.patient.get("contact_number", ""))
+            )
+            self.address.setPlainText(
+                str(self.patient.get("address", ""))
+            )
+            self.emergency_contact.setText(
+                str(self.patient.get("emergency_contact", ""))
+            )
+
+            self.diagnosis.setText(
+                str(self.patient.get("diagnosis", ""))
+            )
+            self.diagnosis_date.setText(
+                str(self.patient.get("diagnosis_date", ""))
+            )
+            self.medical_history.setPlainText(
+                str(self.patient.get("medical_history", ""))
+            )
+            self.conditions.setPlainText(
+                str(self.patient.get(
+                    "conditions",
+                    self.patient.get("other_conditions", "")
+                ))
+            )
+            self.allergies.setPlainText(
+                str(self.patient.get("allergies", ""))
+            )
+            self.current_medications.setPlainText(
+                str(self.patient.get("current_medications", ""))
+            )
+            self.clinical_notes.setPlainText(
+                str(self.patient.get("clinical_notes", ""))
+            )
+
+            self.physician.setText(
+                str(self.patient.get("attending_physician", ""))
+            )
+            self.arv_regimen.setText(
+                str(self.patient.get("arv_regimen", ""))
+            )
+            self.treatment_start.setText(
+                str(self.patient.get(
+                    "treatment_start",
+                    self.patient.get("treatment_start_date", "")
+                ))
+            )
+            self.treatment_status.setCurrentText(
+                str(self.patient.get("treatment_status", "Not specified"))
+            )
+            self.next_appointment.setText(
+                str(self.patient.get("next_appointment", ""))
+            )
+            self.follow_up_notes.setPlainText(
+                str(self.patient.get("follow_up_notes", ""))
+            )
+
     def get_patient_data(self):
         return {
             "full_name": self.full_name.text().strip(),
@@ -604,9 +678,7 @@ class PatientRegistrationDialog(QDialog):
             "medical_history": (
                 self.medical_history.toPlainText().strip()
             ),
-            "other_conditions": (
-                self.conditions.toPlainText().strip()
-            ),
+           "conditions": self.conditions.toPlainText().strip(),
             "allergies": self.allergies.toPlainText().strip(),
             "current_medications": (
                 self.current_medications.toPlainText().strip()
@@ -616,9 +688,7 @@ class PatientRegistrationDialog(QDialog):
             ),
             "attending_physician": self.physician.text().strip(),
             "arv_regimen": self.arv_regimen.text().strip(),
-            "treatment_start_date": (
-                self.treatment_start.text().strip()
-            ),
+            "treatment_start": self.treatment_start.text().strip(),
             "treatment_status": self.treatment_status.currentText(),
             "next_appointment": (
                 self.next_appointment.text().strip()
@@ -780,6 +850,7 @@ class DashboardWindow(QMainWindow):
         self.user = user
         self.page_buttons = []
         self.inventory_service = InventoryService()
+        self.security_service = SecurityService()
 
         self.setWindowTitle(
             "HIV ARV Allocation and Management System"
@@ -922,12 +993,8 @@ class DashboardWindow(QMainWindow):
             )
         )  # Index 5: Report
 
-        self.pages.addWidget(
-            self.create_placeholder_page(
-                "Security",
-                "Manage system security settings."
-            )
-        )  # Index 6: Security
+        self.pages.addWidget(self.create_security_page())
+         # Index 6: Security
 
         content_layout.addWidget(self.pages)
 
@@ -1157,6 +1224,12 @@ class DashboardWindow(QMainWindow):
             self.open_patient_registration
         )
 
+        edit_button = QPushButton("Edit Selected")
+        edit_button.setObjectName("linkButton")
+        edit_button.clicked.connect(
+            self.edit_patient_record
+        )
+
         self.patient_search_input = QLineEdit()
         self.patient_search_input.setPlaceholderText(
             "Search by patient ID or name"
@@ -1184,6 +1257,7 @@ class DashboardWindow(QMainWindow):
         )
 
         actions.addWidget(add_button)
+        actions.addWidget(edit_button)
         actions.addWidget(self.patient_search_input, 1)
         actions.addWidget(search_button)
         actions.addWidget(refresh_button)
@@ -1262,6 +1336,17 @@ class DashboardWindow(QMainWindow):
             )
             return
 
+        self.security_service.log_patient_edit(
+            patient_id=result["patient_id"],
+            username=self.user.get("username", ""),
+            staff_id=self.user.get("staff_id", ""),
+            full_name=self.user.get("full_name", ""),
+            action_type="CREATE",
+            changes_summary="Created a new patient record.",
+            previous_data={},
+            new_data={"patient_id": result["patient_id"]}
+        )
+
         QMessageBox.information(
             self,
             "Patient Registered",
@@ -1271,6 +1356,76 @@ class DashboardWindow(QMainWindow):
 
         self.patient_search_input.clear()
         self.load_patient_records()
+
+    def edit_patient_record(self):
+        row = self.patient_table.currentRow()
+
+        if row < 0:
+            QMessageBox.warning(
+                self,
+                "No Selection",
+                "Select a patient record to edit."
+            )
+            return
+
+        item = self.patient_table.item(row, 0)
+
+        if item is None:
+            return
+
+        patient_id = item.text()
+
+        success, patient = self.patient_service.get_patient_by_id(
+            patient_id
+        )
+
+        if not success:
+            QMessageBox.warning(
+                self,
+                "Patient Not Found",
+                str(patient)
+            )
+            return
+
+        dialog = PatientRegistrationDialog(
+            parent=self,
+            patient=patient
+        )
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        updated_profile = dialog.get_patient_data()
+
+        staff = {
+            "username": self.user.get("username", ""),
+            "staff_id": self.user.get("staff_id", ""),
+            "full_name": self.user.get("full_name", "")
+        }
+
+        success, result = self.patient_service.update_patient(
+            patient_id,
+            updated_profile,
+            staff=staff
+        )
+
+        if not success:
+            QMessageBox.warning(
+                self,
+                "Update Failed",
+                str(result)
+            )
+            return
+
+        QMessageBox.information(
+            self,
+            "Patient Updated",
+            f"Patient record {patient_id} was updated successfully."
+        )
+
+        self.load_patient_records(
+            self.patient_search_input.text()
+        )
 
     def load_patient_records(self, search_text=""):
         success, result = self.patient_service.get_patients(
@@ -1353,6 +1508,17 @@ class DashboardWindow(QMainWindow):
         )
 
         if success:
+            # Record the deletion in the security audit logs
+            self.security_service.log_patient_edit(
+                patient_id=patient_id,
+                username=self.user.get("username", ""),
+                staff_id=self.user.get("staff_id", ""),
+                full_name=self.user.get("full_name", ""),
+                action_type="DELETE",
+                changes_summary="Deleted a patient record.",
+                previous_data={"patient_id": patient_id},
+                new_data={}
+            )
             QMessageBox.information(
                 self,
                 "Success",
@@ -1766,6 +1932,172 @@ class DashboardWindow(QMainWindow):
         layout.addStretch()
 
         return page
+
+    
+    def create_security_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+
+        title = QLabel("Security and Audit Logs")
+        title.setObjectName("cardTitle")
+
+        description = QLabel(
+            "Review login attempts and track changes made "
+            "to patient records."
+        )
+        description.setWordWrap(True)
+
+        layout.addWidget(title)
+        layout.addWidget(description)
+
+        # Search and refresh controls
+        controls = QHBoxLayout()
+
+        self.security_search_input = QLineEdit()
+        self.security_search_input.setPlaceholderText(
+            "Search username, staff ID, patient ID, date, or action..."
+        )
+        self.security_search_input.returnPressed.connect(
+            self.refresh_security_logs
+        )
+
+        search_button = QPushButton("Search")
+        search_button.setObjectName("loginButton")
+        search_button.clicked.connect(self.refresh_security_logs)
+
+        refresh_button = QPushButton("Refresh")
+        refresh_button.setObjectName("linkButton")
+        refresh_button.clicked.connect(
+            lambda: (
+                self.security_search_input.clear(),
+                self.refresh_security_logs()
+            )
+        )
+
+        controls.addWidget(self.security_search_input, 1)
+        controls.addWidget(search_button)
+        controls.addWidget(refresh_button)
+        layout.addLayout(controls)
+
+        # Separate tabs for login and patient audit records
+        self.security_tabs = QTabWidget()
+
+        self.login_audit_table = QTableWidget()
+        self.login_audit_table.setColumnCount(7)
+        self.login_audit_table.setHorizontalHeaderLabels([
+            "Username",
+            "Staff ID",
+            "Full Name",
+            "Date",
+            "Time",
+            "Status",
+            "IP Address"
+        ])
+
+        self.patient_audit_table = QTableWidget()
+        self.patient_audit_table.setColumnCount(8)
+        self.patient_audit_table.setHorizontalHeaderLabels([
+            "Audit ID",
+            "Patient ID",
+            "Version",
+            "Action",
+            "Staff ID",
+            "Username",
+            "Date / Time",
+            "Change Summary"
+        ])
+
+        for table in (
+            self.login_audit_table,
+            self.patient_audit_table
+        ):
+            table.setEditTriggers(
+                QTableWidget.EditTrigger.NoEditTriggers
+            )
+            table.setSelectionBehavior(
+                QTableWidget.SelectionBehavior.SelectRows
+            )
+            table.setAlternatingRowColors(True)
+            table.setShowGrid(False)
+            table.verticalHeader().setVisible(False)
+            table.horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeMode.ResizeToContents
+            )
+            table.horizontalHeader().setStretchLastSection(True)
+
+        self.security_tabs.addTab(
+            self.login_audit_table, "Login Audit Logs"
+        )
+        self.security_tabs.addTab(
+            self.patient_audit_table, "Patient Audit Logs"
+        )
+
+        layout.addWidget(self.security_tabs, 1)
+
+        self.refresh_security_logs()
+
+        return page
+
+    def refresh_security_logs(self):
+        if not hasattr(self, "security_search_input"):
+            return
+
+        query = self.security_search_input.text().strip()
+
+        # Load login attempts
+        login_logs = self.security_service.get_login_logs(query)
+        self.login_audit_table.setRowCount(0)
+
+        for log in login_logs:
+            row = self.login_audit_table.rowCount()
+            self.login_audit_table.insertRow(row)
+
+            values = [
+                log.get("username", ""),
+                log.get("staff_id", ""),
+                log.get("full_name", ""),
+                log.get("date", ""),
+                log.get("time", ""),
+                log.get("status", ""),
+                log.get("ip_address", "")
+            ]
+
+            for column, value in enumerate(values):
+                self.login_audit_table.setItem(
+                    row,
+                    column,
+                    QTableWidgetItem(str(value))
+                )
+
+        # Load patient record changes
+        patient_logs = (
+            self.security_service.get_all_patient_audit_logs(query)
+        )
+        self.patient_audit_table.setRowCount(0)
+
+        for log in patient_logs:
+            row = self.patient_audit_table.rowCount()
+            self.patient_audit_table.insertRow(row)
+
+            values = [
+                log.get("audit_id", ""),
+                log.get("patient_id", ""),
+                log.get("version", ""),
+                log.get("action_type", ""),
+                log.get("staff_id", ""),
+                log.get("username", ""),
+                f"{log.get('date', '')} {log.get('time', '')}",
+                log.get("changes_summary", "")
+            ]
+
+            for column, value in enumerate(values):
+                self.patient_audit_table.setItem(
+                    row,
+                    column,
+                    QTableWidgetItem(str(value))
+                )
 
    
     def change_page(self, index):

@@ -23,8 +23,6 @@ class PatientService:
         if not os.path.exists(self.file_path):
             self._save_all([])
 
-        self.security = SecurityService()
-
     def _load_all(self):
         try:
             with open(self.file_path, "r", encoding="utf-8") as file:
@@ -97,18 +95,6 @@ class PatientService:
 
         patients.append(new_patient)
         self._save_all(patients)
-
-        staff = {} # Declared for auditing
-        self.security.log_patient_edit(
-            patient_id=profile.get("patient_id"),
-            username=staff.get("username", "System"),
-            staff_id=staff.get("staff_id", "System"),
-            full_name=staff.get("full_name", "System"),
-            action_type="CREATE",
-            changes_summary=f"Created patient profile for {profile.get('full_name')}",
-            new_data=profile
-        )
-
         return True, new_patient
 
     def get_patients(self, search_text=""):
@@ -123,6 +109,83 @@ class PatientService:
             ]
 
         return True, patients
+
+    
+    def update_patient(self, patient_id, updated_profile, staff=None):
+        patients = self._load_all()
+
+        patient_index = next(
+            (
+                index for index, patient in enumerate(patients)
+                if patient.get("patient_id") == patient_id
+            ),
+            None
+        )
+
+        if patient_index is None:
+            return False, "Patient record not found."
+
+        old_patient = patients[patient_index]
+
+        required_fields = {
+            "full_name": "Full name",
+            "date_of_birth": "Date of birth",
+            "diagnosis": "Diagnosis",
+            "attending_physician": "Attending physician"
+        }
+
+        for field, label in required_fields.items():
+            value = updated_profile.get(
+                field, old_patient.get(field, "")
+            )
+            if not str(value).strip():
+                return False, f"{label} is required."
+
+        date_of_birth = str(
+            updated_profile.get(
+                "date_of_birth", old_patient.get("date_of_birth", "")
+            )
+        ).strip()
+
+        try:
+            dob = date.fromisoformat(date_of_birth)
+            if dob > date.today():
+                return False, "Date of birth cannot be in the future."
+        except ValueError:
+            return False, "Date of birth must use YYYY-MM-DD format."
+
+        age = date.today().year - dob.year
+        if (date.today().month, date.today().day) < (dob.month, dob.day):
+            age -= 1
+
+        # Keep the existing patient ID and registration date.
+        updated_patient = old_patient.copy()
+        updated_patient.update(updated_profile)
+        updated_patient["patient_id"] = patient_id
+        updated_patient["date_registered"] = old_patient.get(
+            "date_registered", ""
+        )
+        updated_patient["date_of_birth"] = date_of_birth
+        updated_patient["age"] = age
+
+        # Save the updated patient without creating a duplicate.
+        patients[patient_index] = updated_patient
+        self._save_all(patients)
+
+        staff = staff or {}
+
+        self.security.log_patient_edit(
+            patient_id=patient_id,
+            username=staff.get("username", "System"),
+            staff_id=staff.get("staff_id", "System"),
+            full_name=staff.get("full_name", "System"),
+            action_type="UPDATE",
+            changes_summary="Updated patient profile.",
+            previous_data=old_patient,
+            new_data=updated_patient
+        )
+
+        return True, updated_patient
 
     def get_patient_by_id(self, patient_id):
         for patient in self._load_all():
@@ -145,16 +208,5 @@ class PatientService:
             return False, "Patient record not found."
 
         self._save_all(updated_patients)
-
-        staff = {} # Declared for auditing
-        self.security.log_patient_edit(
-            patient_id=patient_id,
-            username=staff.get("username", "System"),
-            staff_id=staff.get("staff_id", "System"),
-            full_name=staff.get("full_name", "System"),
-            action_type="DELETE",
-            changes_summary=f"Deleted patient record ID {patient_id}",
-            previous_data=target_patient or {}
-        )
 
         return True, "Patient record deleted successfully."
