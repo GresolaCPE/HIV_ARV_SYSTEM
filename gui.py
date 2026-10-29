@@ -29,13 +29,15 @@ from PyQt6.QtWidgets import (
     QHeaderView,
 
 )
-from PyQt6.QtGui import QIntValidator
+from PyQt6.QtGui import QIntValidator, QTextDocument
+from PyQt6.QtPrintSupport import QPrinter
 
 from backend.auth_service import AuthService
 from backend.patient_service import PatientService
 from backend.inventory_service import InventoryService
 from allocation_page import AllocationPage
 from backend.security_service import SecurityService
+from backend.report_service import ReportService
 
 def load_stylesheet():
     """Load the separate QSS stylesheet."""
@@ -325,11 +327,11 @@ class RegistrationDialog(QDialog):
         layout.addWidget(title)
 
         # STAFF ID
-        staff_id_label = QLabel("Authorized Staff ID")
+        staff_id_label = QLabel("Staff ID")
         staff_id_label.setObjectName("fieldLabel")
 
         self.staff_id_input = QLineEdit()
-        self.staff_id_input.setPlaceholderText("Enter your staff ID")
+        self.staff_id_input.setPlaceholderText("Create a staff ID (e.g. STAFF001)")
 
         layout.addWidget(staff_id_label)
         layout.addWidget(self.staff_id_input)
@@ -360,7 +362,7 @@ class RegistrationDialog(QDialog):
 
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText(
-            "Create a password"
+            "Create a password (at least 8 characters)"
         )
         self.password_input.setEchoMode(
             QLineEdit.EchoMode.Password
@@ -986,12 +988,7 @@ class DashboardWindow(QMainWindow):
             )
         )  # Index 4: Schedule
 
-        self.pages.addWidget(
-            self.create_placeholder_page(
-                "Reports",
-                "View system summaries and generate reports."
-            )
-        )  # Index 5: Report
+        self.pages.addWidget(self.create_reports_page())  # Index 5: Report
 
         self.pages.addWidget(self.create_security_page())
          # Index 6: Security
@@ -1896,6 +1893,272 @@ class DashboardWindow(QMainWindow):
         QMessageBox.information(self, "Deleted", str(message))
         self.refresh_inventory()
 
+
+
+    def create_reports_page(self):
+        """Search, preview and export patient and medicine records."""
+        self.report_service = ReportService()
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setSpacing(12)
+
+        intro = QLabel(
+            "Find patient records, version history, referral forms, "
+            "allocation history, and stock movement totals. Export any "
+            "preview as a PDF for printing or as an HTML document."
+        )
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
+
+        form = QFormLayout()
+        self.report_type = QComboBox()
+        self.report_type.addItems([
+            "Patient Record",
+            "Patient Record History",
+            "Referral Form",
+            "Allocation History",
+            "Medicine Stock Movement"
+        ])
+        form.addRow("Document type:", self.report_type)
+
+        self.report_patient_id = QLineEdit()
+        self.report_patient_id.setPlaceholderText("Enter exact Patient ID")
+        form.addRow("Patient ID:", self.report_patient_id)
+
+        self.report_record = QComboBox()
+        self.report_record.addItem("All records", "")
+        form.addRow("History / record to retrieve:", self.report_record)
+
+        self.referral_reason = QLineEdit()
+        self.referral_reason.setPlaceholderText("Reason for referral (for referral documents)")
+        form.addRow("Referral reason:", self.referral_reason)
+        self.referral_facility = QLineEdit()
+        self.referral_facility.setPlaceholderText("Receiving facility / specialist")
+        form.addRow("Referred to:", self.referral_facility)
+        layout.addLayout(form)
+
+        buttons = QHBoxLayout()
+        search_button = QPushButton("SEARCH / GENERATE PREVIEW")
+        search_button.setObjectName("loginButton")
+        search_button.clicked.connect(self.generate_report_preview)
+        buttons.addWidget(search_button)
+
+        pdf_button = QPushButton("EXPORT PDF / PRINT")
+        pdf_button.clicked.connect(self.export_report_pdf)
+        buttons.addWidget(pdf_button)
+
+        html_button = QPushButton("SAVE DOCUMENT (HTML)")
+        html_button.clicked.connect(self.export_report_html)
+        buttons.addWidget(html_button)
+        layout.addLayout(buttons)
+
+        self.report_preview = QTextEdit()
+        self.report_preview.setReadOnly(True)
+        self.report_preview.setPlaceholderText(
+            "Your printable document preview will appear here."
+        )
+        layout.addWidget(self.report_preview, 1)
+
+        self.report_type.currentTextChanged.connect(self.refresh_report_choices)
+        self.report_patient_id.textChanged.connect(self.refresh_report_choices)
+        self.refresh_report_choices()
+        return page
+
+    def refresh_report_choices(self, *args):
+        if not hasattr(self, "report_record"):
+            return
+        report_type = self.report_type.currentText()
+        patient_id = self.report_patient_id.text().strip()
+        self.report_record.clear()
+        self.report_record.addItem("All records", "")
+
+        if report_type == "Patient Record History" and patient_id:
+            for row in self.report_service.patient_history(patient_id):
+                label = "{} | v{} | {} | {}".format(
+                    row.get("date", ""), row.get("version", ""),
+                    row.get("action_type", ""), row.get("changes_summary", "")
+                )
+                self.report_record.addItem(label, row.get("audit_id", ""))
+        elif report_type == "Allocation History":
+            for row in self.report_service.allocations(patient_id):
+                label = "{} | {} | {} | {} units | {}".format(
+                    row.get("allocation_date", ""), row.get("allocation_id", ""),
+                    row.get("medicine_name", ""), row.get("quantity", ""),
+                    row.get("status", "")
+                )
+                self.report_record.addItem(label, row.get("allocation_id", ""))
+        elif report_type == "Medicine Stock Movement":
+            for row in self.report_service.transactions():
+                label = "{} | {} | {} | {} units".format(
+                    str(row.get("transaction_date", ""))[:10],
+                    row.get("transaction_id", ""), row.get("transaction_type", ""),
+                    row.get("quantity", "")
+                )
+                self.report_record.addItem(label, row.get("transaction_id", ""))
+
+    @staticmethod
+    def _report_html(title, rows, subtitle=""):
+        import html
+        parts = [
+            "<html><head><meta charset='utf-8'><style>"
+            "body{font-family:Arial,sans-serif;font-size:10pt;color:#222}"
+            "h1{font-size:18pt;color:#17365d}h2{font-size:12pt;color:#17365d}"
+            "table{border-collapse:collapse;width:100%}td,th{border:1px solid #aaa;"
+            "padding:6px;text-align:left;vertical-align:top}th{background:#eaf0f7}"
+            ".muted{color:#666;font-size:9pt}.conf{margin-top:24px;border-top:1px solid #aaa;"
+            "padding-top:8px;font-size:9pt}</style></head><body>",
+            "<h1>HIV ARV Allocation and Management System</h1>",
+            "<h2>{}</h2>".format(html.escape(title)),
+            "<p class='muted'>{}</p>".format(html.escape(subtitle)),
+            "<table>"
+        ]
+        for key, value in rows:
+            parts.append("<tr><th>{}</th><td>{}</td></tr>".format(
+                html.escape(str(key)), html.escape(str(value if value not in (None, "") else "—"))
+            ))
+        parts.append("</table><p class='conf'>CONFIDENTIAL — For authorized care and program use only.</p></body></html>")
+        return "".join(parts)
+
+    def generate_report_preview(self):
+        import html
+        kind = self.report_type.currentText()
+        patient_id = self.report_patient_id.text().strip()
+        selected_id = self.report_record.currentData()
+        rows = []
+        title = kind
+        subtitle = "Generated by: {} ({})".format(
+            self.user.get("full_name", "Staff"), self.user.get("staff_id", "")
+        )
+
+        if kind in ("Patient Record", "Patient Record History", "Referral Form"):
+            if not patient_id:
+                QMessageBox.information(self, "Patient ID required", "Enter a Patient ID first.")
+                return
+            patient = self.report_service.patient(patient_id)
+            if not patient:
+                QMessageBox.warning(self, "No patient found", "No patient record matches that Patient ID.")
+                return
+            if kind == "Patient Record":
+                preferred = [
+                    ("Patient ID", "patient_id"), ("Full Name", "full_name"),
+                    ("Date of Birth", "date_of_birth"), ("Age", "age"), ("Sex", "sex"),
+                    ("Contact Number", "contact_number"), ("Address", "address"),
+                    ("Diagnosis", "diagnosis"), ("Diagnosis Date", "diagnosis_date"),
+                    ("Medical History", "medical_history"), ("Conditions", "conditions"),
+                    ("Allergies", "allergies"), ("Current Medications", "current_medications"),
+                    ("Clinical Notes", "clinical_notes"), ("Attending Physician", "attending_physician"),
+                    ("ARV Regimen", "arv_regimen"), ("Treatment Start", "treatment_start"),
+                    ("Treatment Status", "treatment_status"), ("Next Appointment", "next_appointment"),
+                    ("Follow-up Notes", "follow_up_notes"), ("Date Registered", "date_registered")
+                ]
+                rows = [(label, patient.get(key, "")) for label, key in preferred]
+            elif kind == "Referral Form":
+                title = "Patient Referral Form"
+                rows = [
+                    ("Referral Date", __import__("datetime").date.today().isoformat()),
+                    ("Patient ID", patient.get("patient_id", "")),
+                    ("Patient Name", patient.get("full_name", "")),
+                    ("Date of Birth / Age", "{} / {}".format(patient.get("date_of_birth", ""), patient.get("age", ""))),
+                    ("Diagnosis", patient.get("diagnosis", "")),
+                    ("Current ARV Regimen", patient.get("arv_regimen", "")),
+                    ("Reason for Referral", self.referral_reason.text().strip()),
+                    ("Referred To / Facility", self.referral_facility.text().strip()),
+                    ("Relevant Clinical Notes", patient.get("clinical_notes", "")),
+                    ("Referring Physician / Staff", self.user.get("full_name", "")),
+                    ("Signature", "________________________________")
+                ]
+            else:
+                history = self.report_service.patient_history(patient_id)
+                if selected_id:
+                    history = [r for r in history if r.get("audit_id") == selected_id]
+                if not history:
+                    QMessageBox.information(self, "No history", "No saved history entries were found for this patient.")
+                    return
+                for record in history:
+                    rows.extend([
+                        ("Audit ID", record.get("audit_id", "")),
+                        ("Version / Action", "{} / {}".format(record.get("version", ""), record.get("action_type", ""))),
+                        ("Date and Time", "{} {}".format(record.get("date", ""), record.get("time", ""))),
+                        ("Edited By", "{} ({})".format(record.get("full_name", ""), record.get("staff_id", ""))),
+                        ("Change Summary", record.get("changes_summary", "")),
+                        ("Previous Data", __import__("json").dumps(record.get("previous_data", {}), ensure_ascii=False, indent=2)),
+                        ("Updated Data", __import__("json").dumps(record.get("new_data", {}), ensure_ascii=False, indent=2)),
+                        ("—", "—")
+                    ])
+        elif kind == "Allocation History":
+            records = self.report_service.allocations(patient_id)
+            if selected_id:
+                records = [r for r in records if r.get("allocation_id") == selected_id]
+            if not records:
+                QMessageBox.information(self, "No allocations", "No allocation records match the selected criteria.")
+                return
+            for r in records:
+                rows.extend([
+                    ("Allocation ID", r.get("allocation_id", "")),
+                    ("Patient", "{} ({})".format(r.get("patient_name", ""), r.get("patient_id", ""))),
+                    ("Medicine", "{} {}".format(r.get("medicine_name", ""), r.get("strength", ""))),
+                    ("Quantity", r.get("quantity", "")), ("Dosage", r.get("dosage", "")),
+                    ("Allocation Date", r.get("allocation_date", "")),
+                    ("Next Follow-up", r.get("next_followup_date", "")),
+                    ("Status", r.get("status", "")), ("Allocated By", r.get("allocated_by", "")),
+                    ("Batch Details", __import__("json").dumps(r.get("batches", []), ensure_ascii=False, indent=2)),
+                    ("Notes / Cancellation Reason", "{} {}".format(r.get("notes", ""), r.get("cancel_reason", ""))),
+                    ("—", "—")
+                ])
+        else:
+            records = self.report_service.transactions()
+            if selected_id:
+                records = [r for r in records if r.get("transaction_id") == selected_id]
+            summary = self.report_service.stock_summary()
+            rows = [
+                ("Total quantity received (stock in)", summary.get("stock_in", 0)),
+                ("Total quantity issued / removed (stock out)", summary.get("stock_out", 0)),
+                ("Net movement (in minus out)", summary.get("stock_in", 0) - summary.get("stock_out", 0)),
+                ("Number of movement records", len(records)),
+                ("", "")
+            ]
+            for r in records:
+                rows.extend([
+                    ("Transaction ID", r.get("transaction_id", "")),
+                    ("Date", r.get("transaction_date", "")),
+                    ("Movement", r.get("transaction_type", "")),
+                    ("Medicine / Strength", "{} {}".format(r.get("medicine_name", ""), r.get("strength", ""))),
+                    ("Batch", r.get("batch_number", "")), ("Quantity", r.get("quantity", "")),
+                    ("Balance After", r.get("balance_after", "")),
+                    ("Reference / Remarks", "{} / {}".format(r.get("reference", ""), r.get("remarks", ""))),
+                    ("Performed By", r.get("performed_by", "")), ("—", "—")
+                ])
+        self.report_preview.setHtml(self._report_html(title, rows, subtitle))
+
+    def export_report_pdf(self):
+        if not self.report_preview.toPlainText().strip():
+            self.generate_report_preview()
+        if not self.report_preview.toPlainText().strip():
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "Save printable PDF", "system_report.pdf", "PDF files (*.pdf)")
+        if not path:
+            return
+        if not path.lower().endswith(".pdf"):
+            path += ".pdf"
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+        printer.setOutputFileName(path)
+        self.report_preview.document().print(printer)
+        QMessageBox.information(self, "PDF saved", "Printable report saved to:\\n" + path)
+
+    def export_report_html(self):
+        if not self.report_preview.toPlainText().strip():
+            self.generate_report_preview()
+        if not self.report_preview.toPlainText().strip():
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "Save editable document", "system_report.html", "HTML documents (*.html)")
+        if not path:
+            return
+        if not path.lower().endswith(".html"):
+            path += ".html"
+        with open(path, "w", encoding="utf-8") as file:
+            file.write(self.report_preview.toHtml())
+        QMessageBox.information(self, "Document saved", "HTML document saved to:\\n" + path)
 
     def create_placeholder_page(self, title, description):
 
