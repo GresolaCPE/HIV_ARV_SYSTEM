@@ -405,7 +405,7 @@ class AllocationPage(QWidget):
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
-        self.table.setWordWrap(True)
+        self.table.setWordWrap(False)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(42)
         self.table.setHorizontalScrollMode(
@@ -414,7 +414,8 @@ class AllocationPage(QWidget):
         self.table.doubleClicked.connect(self.view_details)
 
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        header.setStretchLastSection(True)
 
         layout.addWidget(self.table, 1)
 
