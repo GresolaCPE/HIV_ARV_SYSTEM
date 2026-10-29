@@ -52,7 +52,7 @@ HIV_ARV_SYSTEM/
 | Role | Name |
 | :---: | :---: |
 | **Lead Full Stack Developer** | Gresola, Aryanna Keith G. |
-| **Documentation** | Nacion, Daniela Joy N. |
+| **Documentation and Full Stack Developer** | Nacion, Daniela Joy N. |
 | **Backend Developer** | Ramirez, Angel Mae C. |
 | **Frontend Developer** | Salcedo, Lance Cristopher S. |
 | **Full Stack Developer** | Santos, Paterno Miguel R. |
