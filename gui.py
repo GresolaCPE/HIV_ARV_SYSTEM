@@ -618,6 +618,14 @@ class PatientRegistrationDialog(QDialog):
                 str(self.patient.get("emergency_contact", ""))
             )
 
+            # Core identity fields are fixed after registration.
+            self.full_name.setReadOnly(True)
+            self.date_of_birth.setReadOnly(True)
+            self.sex.setEnabled(False)
+            self.full_name.setToolTip("Patient identity is fixed after registration.")
+            self.date_of_birth.setToolTip("Date of birth cannot be changed after registration.")
+            self.sex.setToolTip("Sex is fixed after registration.")
+
             self.diagnosis.setText(
                 str(self.patient.get("diagnosis", ""))
             )
@@ -1227,6 +1235,10 @@ class DashboardWindow(QMainWindow):
             self.edit_patient_record
         )
 
+        history_button = QPushButton("View History")
+        history_button.setObjectName("linkButton")
+        history_button.clicked.connect(self.view_patient_history)
+
         self.patient_search_input = QLineEdit()
         self.patient_search_input.setPlaceholderText(
             "Search by patient ID or name"
@@ -1255,6 +1267,7 @@ class DashboardWindow(QMainWindow):
 
         actions.addWidget(add_button)
         actions.addWidget(edit_button)
+        actions.addWidget(history_button)
         actions.addWidget(self.patient_search_input, 1)
         actions.addWidget(search_button)
         actions.addWidget(refresh_button)
@@ -1291,16 +1304,15 @@ class DashboardWindow(QMainWindow):
         # Table appearance
         self.patient_table.setAlternatingRowColors(True)
         self.patient_table.setShowGrid(False)
-        self.patient_table.setWordWrap(False)
+        self.patient_table.setWordWrap(True)
         self.patient_table.verticalHeader().setVisible(False)
         self.patient_table.verticalHeader().setDefaultSectionSize(48)
 
         # Column sizing
         header = self.patient_table.horizontalHeader()
         header.setSectionResizeMode(
-            QHeaderView.ResizeMode.ResizeToContents
+            QHeaderView.ResizeMode.Stretch
         )
-        header.setStretchLastSection(True)
 
         # Allow horizontal scrolling if the window is too narrow
         self.patient_table.setHorizontalScrollMode(
@@ -1341,7 +1353,7 @@ class DashboardWindow(QMainWindow):
             action_type="CREATE",
             changes_summary="Created a new patient record.",
             previous_data={},
-            new_data={"patient_id": result["patient_id"]}
+            new_data=result
         )
 
         QMessageBox.information(
@@ -1423,6 +1435,60 @@ class DashboardWindow(QMainWindow):
         self.load_patient_records(
             self.patient_search_input.text()
         )
+
+    def view_patient_history(self):
+        row = self.patient_table.currentRow()
+        if row < 0 or self.patient_table.item(row, 0) is None:
+            QMessageBox.information(self, "Select a patient", "Select a patient row first to view its saved versions.")
+            return
+        patient_id = self.patient_table.item(row, 0).text()
+        history = self.report_service.patient_history(patient_id) if hasattr(self, "report_service") else ReportService().patient_history(patient_id)
+        if not history:
+            QMessageBox.information(self, "No history", "No saved history is available for this patient yet.")
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Patient History — {patient_id}")
+        dialog.resize(900, 480)
+        layout = QVBoxLayout(dialog)
+        table = QTableWidget(len(history), 5)
+        table.setHorizontalHeaderLabels(["Version", "Date / Time", "Action", "Updated By", "Change Summary"])
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table.setWordWrap(True)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        for i, entry in enumerate(history):
+            values = [
+                f"v{entry.get('version', '')}",
+                f"{entry.get('date', '')} {entry.get('time', '')}",
+                entry.get('action_type', ''),
+                f"{entry.get('full_name', '')} ({entry.get('staff_id', '')})",
+                entry.get('changes_summary', '')
+            ]
+            for j, value in enumerate(values):
+                table.setItem(i, j, QTableWidgetItem(str(value)))
+        layout.addWidget(table)
+        details = QTextEdit()
+        details.setReadOnly(True)
+        details.setPlaceholderText("Select a version to inspect the saved record data.")
+        def show_details(selected_row, _column=0):
+            if selected_row < 0 or selected_row >= len(history):
+                return
+            entry = history[selected_row]
+            import json
+            details.setPlainText(
+                "PREVIOUS RECORD\n" + json.dumps(entry.get("previous_data", {}), ensure_ascii=False, indent=2)
+                + "\n\nSAVED RECORD FOR THIS VERSION\n"
+                + json.dumps(entry.get("new_data", {}), ensure_ascii=False, indent=2)
+            )
+        table.cellClicked.connect(show_details)
+        layout.addWidget(details, 1)
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(dialog.accept)
+        layout.addWidget(close_button)
+        if history:
+            table.selectRow(0)
+            show_details(0)
+        dialog.exec()
 
     def load_patient_records(self, search_text=""):
         success, result = self.patient_service.get_patients(
@@ -1642,9 +1708,8 @@ class DashboardWindow(QMainWindow):
 
         header = self.inventory_table.horizontalHeader()
         header.setSectionResizeMode(
-            QHeaderView.ResizeMode.ResizeToContents
+            QHeaderView.ResizeMode.Stretch
         )
-        header.setStretchLastSection(True)
 
         layout.addWidget(self.inventory_table, 1)
 
@@ -1931,10 +1996,10 @@ class DashboardWindow(QMainWindow):
 
         self.referral_reason = QLineEdit()
         self.referral_reason.setPlaceholderText("Reason for referral (for referral documents)")
-        form.addRow("Referral reason:", self.referral_reason)
+        form.addRow("Referral reason (optional):", self.referral_reason)
         self.referral_facility = QLineEdit()
         self.referral_facility.setPlaceholderText("Receiving facility / specialist")
-        form.addRow("Referred to:", self.referral_facility)
+        form.addRow("Referred to (optional):", self.referral_facility)
         layout.addLayout(form)
 
         buttons = QHBoxLayout()
@@ -1961,8 +2026,18 @@ class DashboardWindow(QMainWindow):
 
         self.report_type.currentTextChanged.connect(self.refresh_report_choices)
         self.report_patient_id.textChanged.connect(self.refresh_report_choices)
+        self.report_type.currentTextChanged.connect(self.update_referral_inputs)
+        self.update_referral_inputs(self.report_type.currentText())
         self.refresh_report_choices()
         return page
+
+    def update_referral_inputs(self, report_type):
+        is_referral = report_type == "Referral Form"
+        self.referral_reason.setEnabled(is_referral)
+        self.referral_facility.setEnabled(is_referral)
+        if not is_referral:
+            self.referral_reason.clear()
+            self.referral_facility.clear()
 
     def refresh_report_choices(self, *args):
         if not hasattr(self, "report_record"):
@@ -2061,8 +2136,8 @@ class DashboardWindow(QMainWindow):
                     ("Date of Birth / Age", "{} / {}".format(patient.get("date_of_birth", ""), patient.get("age", ""))),
                     ("Diagnosis", patient.get("diagnosis", "")),
                     ("Current ARV Regimen", patient.get("arv_regimen", "")),
-                    ("Reason for Referral", self.referral_reason.text().strip()),
-                    ("Referred To / Facility", self.referral_facility.text().strip()),
+                    ("Reason for Referral", self.referral_reason.text().strip() or "Not provided"),
+                    ("Referred To / Facility", self.referral_facility.text().strip() or "Not specified"),
                     ("Relevant Clinical Notes", patient.get("clinical_notes", "")),
                     ("Referring Physician / Staff", self.user.get("full_name", "")),
                     ("Signature", "________________________________")
@@ -2286,9 +2361,8 @@ class DashboardWindow(QMainWindow):
             table.setShowGrid(False)
             table.verticalHeader().setVisible(False)
             table.horizontalHeader().setSectionResizeMode(
-                QHeaderView.ResizeMode.ResizeToContents
+                QHeaderView.ResizeMode.Stretch
             )
-            table.horizontalHeader().setStretchLastSection(True)
 
         self.security_tabs.addTab(
             self.login_audit_table, "Login Audit Logs"

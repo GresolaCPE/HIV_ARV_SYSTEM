@@ -141,11 +141,7 @@ class PatientService:
             if not str(value).strip():
                 return False, f"{label} is required."
 
-        date_of_birth = str(
-            updated_profile.get(
-                "date_of_birth", old_patient.get("date_of_birth", "")
-            )
-        ).strip()
+        date_of_birth = str(old_patient.get("date_of_birth", "")).strip()
 
         try:
             dob = date.fromisoformat(date_of_birth)
@@ -158,9 +154,14 @@ class PatientService:
         if (date.today().month, date.today().day) < (dob.month, dob.day):
             age -= 1
 
-        # Keep the existing patient ID and registration date.
+        # Keep patient identity fields fixed after initial registration.
+        # This is enforced in the service as well as the GUI, so a caller
+        # cannot change the name, date of birth, or sex through an update.
         updated_patient = old_patient.copy()
         updated_patient.update(updated_profile)
+        for identity_field in ("full_name", "date_of_birth", "sex"):
+            if identity_field in old_patient:
+                updated_patient[identity_field] = old_patient[identity_field]
         updated_patient["patient_id"] = patient_id
         updated_patient["date_registered"] = old_patient.get(
             "date_registered", ""
