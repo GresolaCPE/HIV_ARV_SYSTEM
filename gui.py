@@ -1291,16 +1291,15 @@ class DashboardWindow(QMainWindow):
         # Table appearance
         self.patient_table.setAlternatingRowColors(True)
         self.patient_table.setShowGrid(False)
-        self.patient_table.setWordWrap(False)
+        self.patient_table.setWordWrap(True)
         self.patient_table.verticalHeader().setVisible(False)
         self.patient_table.verticalHeader().setDefaultSectionSize(48)
 
         # Column sizing
         header = self.patient_table.horizontalHeader()
         header.setSectionResizeMode(
-            QHeaderView.ResizeMode.ResizeToContents
+            QHeaderView.ResizeMode.Stretch
         )
-        header.setStretchLastSection(True)
 
         # Allow horizontal scrolling if the window is too narrow
         self.patient_table.setHorizontalScrollMode(
@@ -1642,9 +1641,8 @@ class DashboardWindow(QMainWindow):
 
         header = self.inventory_table.horizontalHeader()
         header.setSectionResizeMode(
-            QHeaderView.ResizeMode.ResizeToContents
+            QHeaderView.ResizeMode.Stretch
         )
-        header.setStretchLastSection(True)
 
         layout.addWidget(self.inventory_table, 1)
 
@@ -2286,9 +2284,8 @@ class DashboardWindow(QMainWindow):
             table.setShowGrid(False)
             table.verticalHeader().setVisible(False)
             table.horizontalHeader().setSectionResizeMode(
-                QHeaderView.ResizeMode.ResizeToContents
+                QHeaderView.ResizeMode.Stretch
             )
-            table.horizontalHeader().setStretchLastSection(True)
 
         self.security_tabs.addTab(
             self.login_audit_table, "Login Audit Logs"
