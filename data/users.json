@@ -1,1 +1,10 @@
-[]
+[
+    {
+        "staff_id": "STAFF-1001",
+        "full_name": "Sample Staff One",
+        "username": "Aryanna",
+        "salt": "0636e84646fbd6fb61d88e98f9688b4f",
+        "password_hash": "f5db24a860a5c379f3242b4cd78d86d933dceeffef24a56e4a8b25a75347a8dd",
+        "created_at": "2026-10-27T16:50:59.698739+00:00"
+    }
+]

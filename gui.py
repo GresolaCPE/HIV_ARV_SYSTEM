@@ -1,6 +1,6 @@
 import os
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtWidgets import (
     QMenu,
     QGridLayout,
@@ -27,6 +27,8 @@ from PyQt6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QHeaderView,
+    QFileDialog,
+    QDateEdit
 
 )
 from PyQt6.QtGui import QIntValidator, QTextDocument
@@ -38,6 +40,8 @@ from backend.inventory_service import InventoryService
 from allocation_page import AllocationPage
 from backend.security_service import SecurityService
 from backend.report_service import ReportService
+from schedule_page import SchedulePage
+
 
 def load_stylesheet():
     """Load the separate QSS stylesheet."""
@@ -441,8 +445,13 @@ class PatientRegistrationDialog(QDialog):
         self.full_name = QLineEdit()
         self.full_name.setPlaceholderText("Full name")
 
-        self.date_of_birth = QLineEdit()
-        self.date_of_birth.setPlaceholderText("YYYY-MM-DD")
+        self.date_of_birth = QDateEdit()
+        self.date_of_birth.setCalendarPopup(True)
+        self.date_of_birth.setDisplayFormat("yyyy-MM-dd")
+        self.date_of_birth.setDateRange(
+            QDate(1900, 1, 1), QDate.currentDate()
+        )
+        self.date_of_birth.setDate(QDate.currentDate())
 
         self.sex = QComboBox()
         self.sex.addItems([
@@ -464,6 +473,20 @@ class PatientRegistrationDialog(QDialog):
             "Emergency contact name and number"
         )
 
+        self.emergency_relationship = QComboBox()
+        self.emergency_relationship.addItems([
+            "Select relationship",
+            "Mother",
+            "Father",
+            "Spouse",
+            "Sibling",
+            "Child",
+            "Guardian",
+            "Other Relative",
+            "Friend",
+            "Other"
+        ])
+
         personal_form.addRow("Full Name *:", self.full_name)
         personal_form.addRow("Date of Birth *:", self.date_of_birth)
         personal_form.addRow("Sex:", self.sex)
@@ -472,6 +495,7 @@ class PatientRegistrationDialog(QDialog):
         personal_form.addRow(
             "Emergency Contact:", self.emergency_contact
         )
+        personal_form.addRow("Relationship to Patient:",self.emergency_relationship)
 
         self.tabs.addTab(personal_tab, "Personal Information")
 
@@ -484,10 +508,15 @@ class PatientRegistrationDialog(QDialog):
             "Enter diagnosis as documented by the clinician"
         )
 
-        self.diagnosis_date = QLineEdit()
-        self.diagnosis_date.setPlaceholderText(
-            "YYYY-MM-DD (optional)"
+        self.diagnosis_date = QDateEdit()
+        self.diagnosis_date.setCalendarPopup(True)
+        self.diagnosis_date.setDisplayFormat("yyyy-MM-dd")
+        self.diagnosis_date.setDateRange(
+            QDate(1900, 1, 1), QDate.currentDate()
         )
+        self.diagnosis_date.setDate(QDate.currentDate())
+
+                
 
         self.medical_history = QTextEdit()
         self.medical_history.setPlaceholderText(
@@ -541,10 +570,13 @@ class PatientRegistrationDialog(QDialog):
             "Regimen as prescribed by the clinician"
         )
 
-        self.treatment_start = QLineEdit()
-        self.treatment_start.setPlaceholderText(
-            "YYYY-MM-DD (optional)"
+        self.treatment_start = QDateEdit()
+        self.treatment_start.setCalendarPopup(True)
+        self.treatment_start.setDisplayFormat("yyyy-MM-dd")
+        self.treatment_start.setDateRange(
+            QDate(1900, 1, 1), QDate.currentDate()
         )
+        self.treatment_start.setDate(QDate.currentDate())
 
         self.treatment_status = QComboBox()
         self.treatment_status.addItems([
@@ -555,10 +587,14 @@ class PatientRegistrationDialog(QDialog):
             "Transferred",
         ])
 
-        self.next_appointment = QLineEdit()
-        self.next_appointment.setPlaceholderText(
-            "YYYY-MM-DD (optional)"
+        self.next_appointment = QDateEdit()
+        self.next_appointment.setCalendarPopup(True)
+        self.next_appointment.setDisplayFormat("yyyy-MM-dd")
+        self.next_appointment.setDateRange(
+            QDate.currentDate(), QDate(2100, 12, 31)
         )
+        self.next_appointment.setDate(QDate.currentDate())
+
 
         self.follow_up_notes = QTextEdit()
         self.follow_up_notes.setPlaceholderText(
@@ -602,8 +638,9 @@ class PatientRegistrationDialog(QDialog):
             self.full_name.setText(
                 str(self.patient.get("full_name", ""))
             )
-            self.date_of_birth.setText(
-                str(self.patient.get("date_of_birth", ""))
+            self.set_date_field(
+                self.date_of_birth,
+                self.patient.get("date_of_birth", "")
             )
             self.sex.setCurrentText(
                 str(self.patient.get("sex", "Prefer not to specify"))
@@ -618,6 +655,18 @@ class PatientRegistrationDialog(QDialog):
                 str(self.patient.get("emergency_contact", ""))
             )
 
+
+            relationship = self.patient.get(
+                "emergency_relationship", "Select relationship"
+            )
+
+            index = self.emergency_relationship.findText(relationship)
+
+            if index >= 0:
+                self.emergency_relationship.setCurrentIndex(index)
+            else:
+                self.emergency_relationship.setCurrentText("Other")
+
             # Core identity fields are fixed after registration.
             self.full_name.setReadOnly(True)
             self.date_of_birth.setReadOnly(True)
@@ -626,12 +675,11 @@ class PatientRegistrationDialog(QDialog):
             self.date_of_birth.setToolTip("Date of birth cannot be changed after registration.")
             self.sex.setToolTip("Sex is fixed after registration.")
 
-            self.diagnosis.setText(
-                str(self.patient.get("diagnosis", ""))
+            self.set_date_field(
+                self.diagnosis_date,
+                self.patient.get("diagnosis_date", "")
             )
-            self.diagnosis_date.setText(
-                str(self.patient.get("diagnosis_date", ""))
-            )
+            
             self.medical_history.setPlainText(
                 str(self.patient.get("medical_history", ""))
             )
@@ -657,56 +705,72 @@ class PatientRegistrationDialog(QDialog):
             self.arv_regimen.setText(
                 str(self.patient.get("arv_regimen", ""))
             )
-            self.treatment_start.setText(
-                str(self.patient.get(
+            self.set_date_field(
+                self.treatment_start,
+                self.patient.get(
                     "treatment_start",
                     self.patient.get("treatment_start_date", "")
-                ))
+                )
             )
             self.treatment_status.setCurrentText(
                 str(self.patient.get("treatment_status", "Not specified"))
             )
-            self.next_appointment.setText(
-                str(self.patient.get("next_appointment", ""))
+            self.set_date_field(
+                self.next_appointment,
+                self.patient.get("next_appointment", "")
             )
             self.follow_up_notes.setPlainText(
                 str(self.patient.get("follow_up_notes", ""))
             )
 
+    def set_date_field(self, field, value, optional=False):
+        if not value and optional:
+            field.setDate(QDate(1900, 1, 1))
+            return
+
+        parsed_date = QDate.fromString(
+            str(value), "yyyy-MM-dd"
+        )
+
+        if parsed_date.isValid():
+            field.setDate(parsed_date)
+
+    def get_date_field_value(self, field, optional=False):
+        if optional and field.date() == QDate(1900, 1, 1):
+            return ""
+
+        return field.date().toString("yyyy-MM-dd")
+
+    
     def get_patient_data(self):
+        relationship = self.emergency_relationship.currentText()
+
+        if relationship == "Select relationship":
+            relationship = ""
+
         return {
             "full_name": self.full_name.text().strip(),
-            "date_of_birth": self.date_of_birth.text().strip(),
+            "date_of_birth": self.date_of_birth.date().toString("yyyy-MM-dd"),
             "sex": self.sex.currentText(),
             "contact_number": self.contact_number.text().strip(),
             "address": self.address.toPlainText().strip(),
-            "emergency_contact": (
-                self.emergency_contact.text().strip()
-            ),
+            "emergency_contact": self.emergency_contact.text().strip(),
+            "emergency_relationship": relationship,
             "diagnosis": self.diagnosis.text().strip(),
-            "diagnosis_date": self.diagnosis_date.text().strip(),
-            "medical_history": (
-                self.medical_history.toPlainText().strip()
-            ),
-           "conditions": self.conditions.toPlainText().strip(),
+            "diagnosis_date": self.diagnosis_date.date().toString("yyyy-MM-dd"),
+            "medical_history": self.medical_history.toPlainText().strip(),
+            "conditions": self.conditions.toPlainText().strip(),
             "allergies": self.allergies.toPlainText().strip(),
-            "current_medications": (
-                self.current_medications.toPlainText().strip()
-            ),
-            "clinical_notes": (
-                self.clinical_notes.toPlainText().strip()
-            ),
+            "current_medications": self.current_medications.toPlainText().strip(),
+            "clinical_notes": self.clinical_notes.toPlainText().strip(),
             "attending_physician": self.physician.text().strip(),
             "arv_regimen": self.arv_regimen.text().strip(),
-            "treatment_start": self.treatment_start.text().strip(),
+            "treatment_start": self.treatment_start.date().toString("yyyy-MM-dd"),
             "treatment_status": self.treatment_status.currentText(),
-            "next_appointment": (
-                self.next_appointment.text().strip()
-            ),
-            "follow_up_notes": (
-                self.follow_up_notes.toPlainText().strip()
-            ),
+            "next_appointment": self.next_appointment.date().toString("yyyy-MM-dd"),
+            "follow_up_notes": self.follow_up_notes.toPlainText().strip(),
         }
+
 
 class MedicineDialog(QDialog):
     def __init__(self, medicine=None, parent=None):
@@ -869,6 +933,7 @@ class DashboardWindow(QMainWindow):
 
         self.create_ui()
         self.setStyleSheet(load_stylesheet())
+        self.refresh_dashboard_schedule()
 
     def create_ui(self):
 
@@ -989,12 +1054,12 @@ class DashboardWindow(QMainWindow):
         )
         self.pages.addWidget(self.allocation_page)  # Index 3: Allocation
 
-        self.pages.addWidget(
-            self.create_placeholder_page(
-                "Schedule",
-                "View and manage patient appointments."
-            )
-        )  # Index 4: Schedule
+        self.schedule_page = SchedulePage(
+            self.user,
+            on_change=self.refresh_dashboard_schedule
+        )
+
+        self.pages.addWidget(self.schedule_page)  # Index 4: Schedule
 
         self.pages.addWidget(self.create_reports_page())  # Index 5: Report
 
@@ -1011,6 +1076,10 @@ class DashboardWindow(QMainWindow):
 
         self.change_page(0)
 
+    def sign_out(self):
+        self.close()
+        self.login_window = LoginWindow()
+        self.login_window.show()
 
     def create_home_page(self):
         page = QWidget()
@@ -1061,10 +1130,10 @@ class DashboardWindow(QMainWindow):
                 "medicine_stock"
             ),
             (
-                "Upcoming Appointments",
-                "View Schedule",
-                "Review patient appointments",
-                None
+                "Patients Expected Today",
+                "0",
+                "Patients with an appointment today",
+                "today_appointments"
             ),
             (
                 "Allocations",
@@ -1104,6 +1173,11 @@ class DashboardWindow(QMainWindow):
                 self.dashboard_inventory_labels["types"] = value
                 self.dashboard_inventory_labels["units"] = description
 
+            elif key == "today_appointments":
+                self.dashboard_today_appointments_label = value
+                self.dashboard_today_appointments_description = description
+
+
             card_layout.addWidget(title)
             card_layout.addWidget(value)
             card_layout.addWidget(description)
@@ -1129,15 +1203,15 @@ class DashboardWindow(QMainWindow):
         schedule_title = QLabel("Incoming Patient Schedule")
         schedule_title.setObjectName("cardTitle")
 
-        schedule_message = QLabel(
-            "No appointment schedule is connected yet.\n"
-            "Patient appointments can be displayed here once Schedule is implemented."
+        self.dashboard_schedule_message = QLabel(
+            "Loading today's appointment..."
         )
-        schedule_message.setObjectName("cardDescription")
-        schedule_message.setWordWrap(True)
+
+        self.dashboard_schedule_message.setObjectName("cardDescription")
+        self.dashboard_schedule_message.setWordWrap(True)
 
         schedule_layout.addWidget(schedule_title)
-        schedule_layout.addWidget(schedule_message)
+        schedule_layout.addWidget(self.dashboard_schedule_message)
         schedule_layout.addStretch()
 
         # Inventory alerts
@@ -1181,7 +1255,7 @@ class DashboardWindow(QMainWindow):
             ("Patient Records", 1),
             ("Inventory", 2),
             ("Allocation", 3),
-            ("Reports", 4),
+            ("Reports", 5),
         ]
 
         for label, page_index in actions:
@@ -1774,7 +1848,78 @@ class DashboardWindow(QMainWindow):
                 self.inventory_table.setItem(
                     row, column, QTableWidgetItem(str(value))
                 )
+    
+    
+    def refresh_dashboard_schedule(self):
+        from datetime import date
+        from schedule_service import ScheduleService
 
+        schedule_service = ScheduleService()
+        success, patients = schedule_service.get_all_patients()
+
+        if not success:
+            self.dashboard_today_appointments_label.setText("—")
+            self.dashboard_today_appointments_description.setText(
+                "Unable to load appointments."
+            )
+            self.dashboard_schedule_message.setText(
+                "Appointment information could not be loaded."
+            )
+            return
+
+        today = date.today().isoformat()
+        upcoming = []
+
+        for patient in patients:
+            appointment_date = str(
+                patient.get("next_appointment", "")
+            ).strip()
+
+            if not appointment_date:
+                continue
+
+            try:
+                date.fromisoformat(appointment_date)
+            except ValueError:
+                continue
+
+            if appointment_date >= today:
+                upcoming.append((appointment_date, patient))
+
+        upcoming.sort(key=lambda item: item[0])
+
+        today_count = sum(
+            1 for appointment_date, patient in upcoming
+            if appointment_date == today
+        )
+
+        self.dashboard_today_appointments_label.setText(
+            str(today_count)
+        )
+        self.dashboard_today_appointments_description.setText(
+            "Patients expected today"
+        )
+
+        if not upcoming:
+            self.dashboard_schedule_message.setText(
+                "No upcoming patient appointments."
+            )
+            return
+
+        lines = []
+
+        for appointment_date, patient in upcoming[:5]:
+            name = patient.get("full_name", "Unnamed Patient")
+            lines.append(f"{appointment_date} — {name}")
+
+        if len(upcoming) > 5:
+            lines.append(
+                f"...and {len(upcoming) - 5} more appointment(s)."
+            )
+
+        self.dashboard_schedule_message.setText(
+            "\n".join(lines)
+        )
 
     def refresh_inventory(self):
         self.inventory_search.clear()
