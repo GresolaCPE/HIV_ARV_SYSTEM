@@ -299,3 +299,339 @@ QLabel#cardDescription {
     color: #63748B;
     font-size: 12px;
 }
+
+/* SECONDARY ACTION BUTTON (Schedule page and follow-up email dialog) */
+QPushButton#primaryButton {
+    background-color: #FFFFFF;
+    color: #2563EB;
+    border: 2px solid #2563EB;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+QPushButton#primaryButton:hover {
+    background-color: #EAF2FF;
+    color: #1D4ED8;
+    border-color: #1D4ED8;
+}
+
+QPushButton#primaryButton:pressed {
+    background-color: #DBEAFE;
+}
+
+
+/* =====================================================================
+   POLISH: general controls (forms, dialogs, buttons, scrollbars)
+   ===================================================================== */
+
+/* Plain buttons (Close, Cancel, Export, ...) */
+QPushButton {
+    background-color: #FFFFFF;
+    color: #17365D;
+    border: 1px solid #C9D6E8;
+    border-radius: 8px;
+    padding: 9px 18px;
+}
+
+QPushButton:hover {
+    background-color: #EAF2FF;
+    border-color: #8FB3EA;
+}
+
+QPushButton:pressed {
+    background-color: #DBEAFE;
+}
+
+QPushButton:disabled {
+    background-color: #EEF2F7;
+    color: #9AA8BA;
+    border-color: #E1E8F0;
+}
+
+/* Combo boxes, date pickers, text areas */
+QComboBox, QDateEdit, QSpinBox {
+    background-color: #FFFFFF;
+    color: #17365D;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 9px 12px;
+    min-height: 20px;
+    selection-background-color: #2563EB;
+}
+
+QComboBox:focus, QDateEdit:focus, QSpinBox:focus {
+    border: 2px solid #2563EB;
+}
+
+QComboBox:disabled, QDateEdit:disabled, QLineEdit:disabled {
+    background-color: #EEF2F7;
+    color: #94A3B8;
+}
+
+QLineEdit[readOnly="true"] {
+    background-color: #EEF2F7;
+    color: #64748B;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #FFFFFF;
+    color: #17365D;
+    border: 1px solid #CBD5E1;
+    selection-background-color: #DCEBFF;
+    selection-color: #123B70;
+    outline: none;
+}
+
+QTextEdit, QPlainTextEdit {
+    background-color: #FFFFFF;
+    color: #17365D;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 8px;
+    selection-background-color: #2563EB;
+}
+
+QTextEdit:focus, QPlainTextEdit:focus {
+    border: 2px solid #2563EB;
+}
+
+/* Tabs inside the registration form */
+QTabWidget::pane {
+    border: 1px solid #D8E5F5;
+    border-radius: 10px;
+    background-color: #F4F8FF;
+    top: -1px;
+}
+
+QTabBar::tab {
+    background-color: #E3EDFA;
+    color: #3D5E8C;
+    padding: 10px 20px;
+    margin-right: 4px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+QTabBar::tab:hover {
+    background-color: #D3E3F8;
+}
+
+QTabBar::tab:selected {
+    background-color: #FFFFFF;
+    color: #145DA0;
+    font-weight: bold;
+    border-bottom: 3px solid #2563EB;
+}
+
+QCheckBox {
+    background-color: transparent;
+    spacing: 8px;
+}
+
+QLabel {
+    background-color: transparent;
+}
+
+QToolTip {
+    background-color: #123B69;
+    color: #FFFFFF;
+    border: none;
+    padding: 6px 8px;
+}
+
+/* Popup calendar */
+QCalendarWidget QWidget#qt_calendar_navigationbar {
+    background-color: #123B69;
+}
+
+QCalendarWidget QToolButton {
+    background-color: transparent;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-weight: bold;
+}
+
+QCalendarWidget QToolButton:hover {
+    background-color: #24558B;
+}
+
+QCalendarWidget QMenu {
+    background-color: #FFFFFF;
+    color: #17365D;
+}
+
+QCalendarWidget QSpinBox {
+    background-color: #FFFFFF;
+    color: #17365D;
+    border: none;
+    padding: 2px 6px;
+}
+
+QCalendarWidget QAbstractItemView:enabled {
+    background-color: #FFFFFF;
+    color: #17365D;
+    selection-background-color: #2563EB;
+    selection-color: #FFFFFF;
+    outline: none;
+}
+
+QCalendarWidget QAbstractItemView:disabled {
+    color: #B6C2D2;
+}
+
+/* Scrollbars */
+QScrollBar:vertical {
+    background-color: #F1F5FA;
+    width: 11px;
+    margin: 0;
+    border: none;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #B8CBE3;
+    min-height: 28px;
+    border-radius: 5px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #829FC4;
+}
+
+QScrollBar:horizontal {
+    background-color: #F1F5FA;
+    height: 11px;
+    margin: 0;
+    border: none;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #B8CBE3;
+    min-width: 28px;
+    border-radius: 5px;
+}
+
+QScrollBar::add-line, QScrollBar::sub-line {
+    width: 0;
+    height: 0;
+}
+
+/* Form dialog header band */
+QFrame#dialogHeader {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #123B69, stop:1 #1769D2);
+    border-radius: 12px;
+}
+
+QLabel#dialogHeaderTitle {
+    background-color: transparent;
+    color: #FFFFFF;
+    font-size: 19px;
+    font-weight: bold;
+}
+
+QLabel#dialogHeaderText {
+    background-color: transparent;
+    color: #D5E6FF;
+    font-size: 12px;
+}
+
+/* Danger / delete buttons */
+QPushButton#dangerButton {
+    background-color: #FFFFFF;
+    color: #B91C1C;
+    border: 1px solid #F3B4B4;
+    border-radius: 8px;
+    padding: 9px 18px;
+}
+
+QPushButton#dangerButton:hover {
+    background-color: #FEE2E2;
+}
+
+/* =====================================================================
+   POLISH: dashboard colors
+   ===================================================================== */
+
+QFrame#heroBanner {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #0F2F57, stop:1 #1B4F8A);
+    border: none;
+    border-radius: 12px;
+}
+
+QLabel#heroTitle {
+    background-color: transparent;
+    color: #FFFFFF;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+QLabel#heroText {
+    background-color: transparent;
+    color: #DCEBFF;
+    font-size: 13px;
+}
+
+QLabel#heroDate {
+    background-color: rgba(255, 255, 255, 40);
+    color: #FFFFFF;
+    border-radius: 13px;
+    padding: 7px 16px;
+    font-weight: bold;
+}
+
+/* Dashboard cards: one calm style, color only where it carries meaning */
+QFrame#dashboardCard {
+    background-color: #FFFFFF;
+    border: 1px solid #DCE5F0;
+    border-radius: 10px;
+}
+
+QLabel#metricValue {
+    color: #0F2F57;
+    font-size: 28px;
+    font-weight: bold;
+    padding-top: 2px;
+}
+
+QLabel#metricCaption {
+    background-color: transparent;
+    color: #64748B;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+QLabel#cardTitle {
+    color: #0F2F57;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+/* Quick action buttons */
+QPushButton#quickAction {
+    background-color: #FFFFFF;
+    color: #0F2F57;
+    border: 1px solid #C9D6E8;
+    border-radius: 8px;
+    padding: 14px 10px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+QPushButton#quickAction:hover {
+    background-color: #0F2F57;
+    color: #FFFFFF;
+    border-color: #0F2F57;
+}
+
+/* Report preview "paper" */
+QTextEdit#reportPreview {
+    background-color: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 10px;
+    padding: 6px;
+}

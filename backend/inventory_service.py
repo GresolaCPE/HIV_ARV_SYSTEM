@@ -1,11 +1,16 @@
 import json
 import os
 from datetime import date, datetime
+from backend.storage import JSONStorage
+from backend.security_service import SecurityService
 
 
 class InventoryService:
 
-    def __init__(self):
+    def __init__(self, storage=None, security_service=None):
+        self.storage = storage or JSONStorage()
+        self.security = security_service or SecurityService(self.storage)
+        
         # Store inventory data in the backend folder.
         self.data_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -155,6 +160,15 @@ class InventoryService:
             medicines.append(medicine)
             self._save_data(medicines)
 
+            self.security.log_service_edit(
+                service_name="InventoryService",
+                record_id=medicine["medicine_id"],
+                action_type="CREATE",
+                changes_summary=f"Added medicine {medicine['medicine_name']}",
+                new_data=medicine,
+                success=True
+            )
+
             return True, medicine
 
         except (OSError, ValueError) as error:
@@ -220,6 +234,18 @@ class InventoryService:
                 medicines[index] = updated
                 self._save_data(medicines)
 
+                staff = {} # Declared for auditing
+                self.security.log_service_edit(
+                service_name="InventoryService",
+                record_id=medicine_id,
+                action_type="UPDATE",
+                changes_summary=f"Updated medicine record ID {medicine_id}",
+                username=staff.get("username", "System"),
+                staff_id=staff.get("staff_id", "System"),
+                full_name=staff.get("full_name", "System"),
+                success=True
+            )
+            
                 return True, updated
 
             return False, "Medicine record not found."
@@ -240,6 +266,18 @@ class InventoryService:
                 return False, "Medicine record not found."
 
             self._save_data(remaining)
+            staff = {}
+            self.security.log_service_edit(
+                service_name="InventoryService",
+                record_id=medicine_id,
+                action_type="DELETE",
+                changes_summary=f"Deleted medicine record ID {medicine_id}",
+                username=staff.get("username", "System"),
+                staff_id=staff.get("staff_id", "System"),
+                full_name=staff.get("full_name", "System"),
+                success=True
+            )
+
             return True, "Medicine record deleted successfully."
 
         except (OSError, ValueError) as error:

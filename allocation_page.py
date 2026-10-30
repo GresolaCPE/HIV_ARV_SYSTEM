@@ -1,9 +1,11 @@
 from datetime import date
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QBrush, QColor, QIntValidator
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QComboBox,
+    QDateEdit,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -26,6 +28,33 @@ from PyQt6.QtWidgets import (
 from backend.allocation_service import AllocationService
 
 
+class OptionalDateEdit(QWidget):
+    """Calendar date picker that can be left empty (tick the box to use it)."""
+
+    def __init__(self, label="Set a date", parent=None):
+        super().__init__(parent)
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(12)
+
+        self.use_date = QCheckBox(label)
+        self.picker = QDateEdit()
+        self.picker.setCalendarPopup(True)
+        self.picker.setDisplayFormat("yyyy-MM-dd")
+        self.picker.setDate(QDate.currentDate().addDays(30))
+        self.picker.setEnabled(False)
+        self.use_date.toggled.connect(self.picker.setEnabled)
+
+        row.addWidget(self.use_date)
+        row.addWidget(self.picker, 1)
+
+    def text(self):
+        if not self.use_date.isChecked():
+            return ""
+        return self.picker.date().toString("yyyy-MM-dd")
+
+
 class NewAllocationDialog(QDialog):
     def __init__(self, allocation_service, parent=None):
         super().__init__(parent)
@@ -36,7 +65,29 @@ class NewAllocationDialog(QDialog):
         self.setMinimumWidth(520)
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(14)
+
+        header = QFrame()
+        header.setObjectName("dialogHeader")
+        header_layout = QVBoxLayout(header)
+        header_layout.setContentsMargins(20, 14, 20, 14)
+        header_layout.setSpacing(2)
+        header_title = QLabel("New Allocation")
+        header_title.setObjectName("dialogHeaderTitle")
+        header_text = QLabel(
+            "Choose the patient and medicine. Stock is taken from the "
+            "batches that expire first."
+        )
+        header_text.setObjectName("dialogHeaderText")
+        header_text.setWordWrap(True)
+        header_layout.addWidget(header_title)
+        header_layout.addWidget(header_text)
+        layout.addWidget(header)
+
         form = QFormLayout()
+        form.setVerticalSpacing(12)
+        form.setHorizontalSpacing(18)
 
         self.patient = QComboBox()
         self.patient.setEditable(True)
@@ -65,12 +116,14 @@ class NewAllocationDialog(QDialog):
         self.dosage.setPlaceholderText("e.g., 1 tablet once daily")
         form.addRow("Dosage:", self.dosage)
 
-        self.allocation_date = QLineEdit(date.today().isoformat())
-        self.allocation_date.setPlaceholderText("YYYY-MM-DD")
+        self.allocation_date = QDateEdit()
+        self.allocation_date.setCalendarPopup(True)
+        self.allocation_date.setDisplayFormat("yyyy-MM-dd")
+        self.allocation_date.setMaximumDate(QDate.currentDate())
+        self.allocation_date.setDate(QDate.currentDate())
         form.addRow("Allocation Date:", self.allocation_date)
 
-        self.next_followup = QLineEdit()
-        self.next_followup.setPlaceholderText("YYYY-MM-DD (optional)")
+        self.next_followup = OptionalDateEdit("Schedule a follow-up")
         form.addRow("Next Follow-up:", self.next_followup)
 
         self.notes = QTextEdit()
@@ -405,7 +458,7 @@ class AllocationPage(QWidget):
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
-        self.table.setWordWrap(False)
+        self.table.setWordWrap(True)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(42)
         self.table.setHorizontalScrollMode(
@@ -414,8 +467,7 @@ class AllocationPage(QWidget):
         self.table.doubleClicked.connect(self.view_details)
 
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        header.setStretchLastSection(True)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         layout.addWidget(self.table, 1)
 

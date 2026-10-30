@@ -4,6 +4,7 @@ from .base_service import BaseService, guarded
 from .inventory_service import InventoryService
 from .patient_service import PatientService
 from .transaction_service import TransactionService
+from backend.security_service import SecurityService
 
 
 class AllocationService(BaseService):
@@ -15,9 +16,11 @@ class AllocationService(BaseService):
         storage=None,
         inventory_service=None,
         patient_service=None,
-        transaction_service=None
+        transaction_service=None,
+        security_service=None
     ):
         super().__init__(storage)
+        self.security = security_service or SecurityService(self.storage)
         self.inventory = inventory_service or InventoryService()
         self.patients = patient_service or PatientService()
         self.transactions = transaction_service or TransactionService(
@@ -264,6 +267,19 @@ class AllocationService(BaseService):
                 }
                 for medicine, take in picks
             ])
+            staff_info = staff or {} # Declared for audit
+            self.security.log_service_edit(
+                service_name="AllocationService",
+                record_id=allocation_id,
+                action_type="CREATE",
+                changes_summary=f"Allocated medicine to patient {patient.get('patient_id')}",
+                username=staff_info.get("username", "System"),
+                staff_id=staff_info.get("staff_id", "System"),
+                full_name=staff_info.get("full_name", "System"),
+                new_data=record,
+                success=True
+            )
+
         except (OSError, ValueError) as error:
             self.restore_files(original_allocations, original_transactions)
             self.restore_quantities(written)
@@ -401,6 +417,20 @@ class AllocationService(BaseService):
                 }
                 for medicine, amount in targets
             ])
+
+            staff_info = staff or {} # Declared for auditing
+            self.security.log_service_edit(
+                service_name="AllocationService",
+                record_id=allocation_id,
+                action_type="CANCEL",
+                changes_summary=f"Cancelled allocation {allocation_id}: {reason}",
+                username=staff_info.get("username", "System"),
+                staff_id=staff_info.get("staff_id", "System"),
+                full_name=staff_info.get("full_name", "System"),
+                new_data=record,
+                success=True
+            )
+
         except (OSError, ValueError) as error:
             self.restore_files(original_allocations, original_transactions)
             self.restore_quantities(written)

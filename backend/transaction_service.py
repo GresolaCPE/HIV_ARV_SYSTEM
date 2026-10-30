@@ -1,14 +1,16 @@
 from backend.base_service import BaseService, guarded
 from backend.inventory_service import InventoryService
+from backend.security_service import SecurityService
 
 
 class TransactionService(BaseService):
     STOCK_IN = "STOCK IN"
     STOCK_OUT = "STOCK OUT"
 
-    def __init__(self, storage=None, inventory_service=None):
+    def __init__(self, storage=None, inventory_service=None, security_service=None):
         super().__init__(storage)
-        self.inventory = inventory_service or InventoryService()
+        self.security = security_service or SecurityService(self.storage)
+        self.inventory = inventory_service or InventoryService(self.storage, self.security)
         self.file_name = "stock_transactions.json"
 
     def load_all(self):
@@ -108,6 +110,18 @@ class TransactionService(BaseService):
         except (OSError, ValueError) as error:
             self.write_quantity(medicine, current)
             return False, f"Could not record the transaction: {error}"
+
+        staff_info = staff if isinstance(staff, dict) else {} # Declared for auditing
+        self.security.log_service_edit(
+            service_name="TransactionService",
+            record_id=medicine.get("medicine_id"),
+            username=staff_info.get("username", "System"),
+            staff_id=staff_info.get("staff_id", "System"),
+            full_name=staff_info.get("full_name", "System"),
+            action_type=transaction_type,
+            changes_summary=f"{transaction_type}: {amount} units of {medicine.get('medicine_name')} (Batch: {medicine.get('batch_number')}). Remarks: {remarks}",
+            new_data=created[0]
+        )
 
         return True, created[0]
 
