@@ -2,8 +2,12 @@ import hashlib
 import hmac
 import secrets
 from datetime import datetime, timezone
-from backend.storage import JSONStorage
-from backend.security_service import SecurityService
+from .storage import JSONStorage
+try:
+    from .security_service import SecurityService  # type: ignore[reportMissingImports]
+except ImportError:
+    # Support running this module directly as well as importing it as a package.
+    from security_service import SecurityService  # type: ignore[reportMissingImports]
 
 class AuthService:
     def __init__(self):

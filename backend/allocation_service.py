@@ -1,10 +1,16 @@
 import copy
+from importlib import import_module
 
 from .base_service import BaseService, guarded
 from .inventory_service import InventoryService
 from .patient_service import PatientService
 from .transaction_service import TransactionService
-from backend.security_service import SecurityService
+try:
+    SecurityService = import_module(
+        ".security_service", package=__package__
+    ).SecurityService
+except ImportError:
+    SecurityService = None
 
 
 class AllocationService(BaseService):
@@ -20,7 +26,9 @@ class AllocationService(BaseService):
         security_service=None
     ):
         super().__init__(storage)
-        self.security = security_service or SecurityService(self.storage)
+        self.security = security_service or (
+            SecurityService(self.storage) if SecurityService is not None else None
+        )
         self.inventory = inventory_service or InventoryService()
         self.patients = patient_service or PatientService()
         self.transactions = transaction_service or TransactionService(
