@@ -7,9 +7,15 @@ from backend.security_service import SecurityService
 
 class InventoryService:
 
+<<<<<<< HEAD
     def __init__(self, storage=None, security_service=None):
         self.storage = storage or JSONStorage()
         self.security = security_service or SecurityService(self.storage)
+=======
+    def __init__(self):
+        self.storage = JSONStorage()
+        self.security = SecurityService(self.storage)
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         
         # Store inventory data in the backend folder.
         self.data_file = os.path.join(
@@ -101,6 +107,22 @@ class InventoryService:
             medicine_data)
             medicines = self._load_data()
 
+<<<<<<< HEAD
+=======
+            staff = {}
+            self.security.log_service_edit(
+                service_name="InventoryService",
+                record_id=medicine_data.get("medicine_id", "UNKNOWN"),
+                action_type="CREATE",
+                changes_summary=f"Added medicine {medicine_data.get('medicine_name', '')}",
+                username=staff.get("username", "System"),
+                staff_id=staff.get("staff_id", "System"),
+                full_name=staff.get("full_name", "System"),
+                new_data=medicine_data,
+                success=True
+            )
+
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             required_fields = [
                 "medicine_name",
                 "strength",
@@ -160,6 +182,7 @@ class InventoryService:
             medicines.append(medicine)
             self._save_data(medicines)
 
+<<<<<<< HEAD
             self.security.log_service_edit(
                 service_name="InventoryService",
                 record_id=medicine["medicine_id"],
@@ -169,6 +192,8 @@ class InventoryService:
                 success=True
             )
 
+=======
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             return True, medicine
 
         except (OSError, ValueError) as error:
@@ -348,4 +373,8 @@ class InventoryService:
         while f"MED-{number:04d}" in existing_ids:
             number += 1
 
+<<<<<<< HEAD
         return f"MED-{number:04d}"
+=======
+        return f"MED-{number:04d}"
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e

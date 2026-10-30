@@ -1,11 +1,18 @@
 from datetime import date
 
+<<<<<<< HEAD
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QBrush, QColor, QIntValidator
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,
+=======
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QBrush, QColor, QIntValidator
+from PyQt6.QtWidgets import (
+    QComboBox,
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -28,6 +35,7 @@ from PyQt6.QtWidgets import (
 from backend.allocation_service import AllocationService
 
 
+<<<<<<< HEAD
 class OptionalDateEdit(QWidget):
     """Calendar date picker that can be left empty (tick the box to use it)."""
 
@@ -55,6 +63,8 @@ class OptionalDateEdit(QWidget):
         return self.picker.date().toString("yyyy-MM-dd")
 
 
+=======
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 class NewAllocationDialog(QDialog):
     def __init__(self, allocation_service, parent=None):
         super().__init__(parent)
@@ -65,6 +75,7 @@ class NewAllocationDialog(QDialog):
         self.setMinimumWidth(520)
 
         layout = QVBoxLayout(self)
+<<<<<<< HEAD
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(14)
 
@@ -88,6 +99,9 @@ class NewAllocationDialog(QDialog):
         form = QFormLayout()
         form.setVerticalSpacing(12)
         form.setHorizontalSpacing(18)
+=======
+        form = QFormLayout()
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
         self.patient = QComboBox()
         self.patient.setEditable(True)
@@ -116,6 +130,7 @@ class NewAllocationDialog(QDialog):
         self.dosage.setPlaceholderText("e.g., 1 tablet once daily")
         form.addRow("Dosage:", self.dosage)
 
+<<<<<<< HEAD
         self.allocation_date = QDateEdit()
         self.allocation_date.setCalendarPopup(True)
         self.allocation_date.setDisplayFormat("yyyy-MM-dd")
@@ -124,6 +139,14 @@ class NewAllocationDialog(QDialog):
         form.addRow("Allocation Date:", self.allocation_date)
 
         self.next_followup = OptionalDateEdit("Schedule a follow-up")
+=======
+        self.allocation_date = QLineEdit(date.today().isoformat())
+        self.allocation_date.setPlaceholderText("YYYY-MM-DD")
+        form.addRow("Allocation Date:", self.allocation_date)
+
+        self.next_followup = QLineEdit()
+        self.next_followup.setPlaceholderText("YYYY-MM-DD (optional)")
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         form.addRow("Next Follow-up:", self.next_followup)
 
         self.notes = QTextEdit()
@@ -665,4 +688,8 @@ class AllocationPage(QWidget):
         )
 
         self.load_allocations()
+<<<<<<< HEAD
         self.notify_changed()
+=======
+        self.notify_changed()
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e

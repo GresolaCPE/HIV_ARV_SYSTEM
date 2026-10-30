@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 import json
 import os
 import uuid
@@ -9,6 +13,7 @@ class PatientService:
     def __init__(self):
         self.storage = JSONStorage()
         self.security = SecurityService(self.storage)
+<<<<<<< HEAD
         self.file_name = "patients.json"
         self._merge_legacy_patients()
 
@@ -42,6 +47,34 @@ class PatientService:
 
     def _save_all(self, patients):
         self.storage.save(self.file_name, patients)
+=======
+        self.data_folder = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data"
+        )
+        self.file_path = os.path.join(
+            self.data_folder, "patients.json"
+        )
+
+        os.makedirs(self.data_folder, exist_ok=True)
+
+        if not os.path.exists(self.file_path):
+            self._save_all([])
+
+    def _load_all(self):
+        try:
+            with open(self.file_path, "r", encoding="utf-8") as file:
+                data = json.load(file)
+
+            return data if isinstance(data, list) else []
+
+        except (json.JSONDecodeError, OSError):
+            return []
+
+    def _save_all(self, patients):
+        with open(self.file_path, "w", encoding="utf-8") as file:
+            json.dump(patients, file, indent=4, ensure_ascii=False)
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
     def add_patient_profile(self, profile):
         patients = self._load_all()
@@ -81,7 +114,10 @@ class PatientService:
             "contact_number": profile.get("contact_number", ""),
             "address": profile.get("address", ""),
             "emergency_contact": profile.get("emergency_contact", ""),
+<<<<<<< HEAD
             "emergency_relationship": profile.get("emergency_relationship", ""),
+=======
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             "diagnosis": str(profile.get("diagnosis", "")).strip(),
             "diagnosis_date": profile.get("diagnosis_date", ""),
             "medical_history": profile.get("medical_history", ""),

@@ -1,6 +1,10 @@
 import os
 
+<<<<<<< HEAD
 from PyQt6.QtCore import Qt, QDate, QMarginsF
+=======
+from PyQt6.QtCore import Qt, QDate
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 from PyQt6.QtWidgets import (
     QMenu,
     QGridLayout,
@@ -28,10 +32,17 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem,
     QHeaderView,
     QFileDialog,
+<<<<<<< HEAD
     QDateEdit,
     QScrollArea
 )
 from PyQt6.QtGui import QIntValidator, QTextDocument, QPageLayout, QPageSize
+=======
+    QDateEdit
+
+)
+from PyQt6.QtGui import QIntValidator, QTextDocument
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 from PyQt6.QtPrintSupport import QPrinter
 
 from backend.auth_service import AuthService
@@ -41,7 +52,10 @@ from allocation_page import AllocationPage
 from backend.security_service import SecurityService
 from backend.report_service import ReportService
 from schedule_page import SchedulePage
+<<<<<<< HEAD
 import report_html
+=======
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
 
 def load_stylesheet():
@@ -64,6 +78,7 @@ def load_stylesheet():
 
 
 
+<<<<<<< HEAD
 def make_dialog_header(title, text=""):
     """Blue title band shown at the top of every fill-up form."""
     header = QFrame()
@@ -93,6 +108,8 @@ def polish_forms(widget):
         form.setContentsMargins(18, 16, 18, 16)
 
 
+=======
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 class LoginWindow(QWidget):
 
     def __init__(self):
@@ -460,6 +477,7 @@ class PatientRegistrationDialog(QDialog):
         self.resize(760, 620)
 
         main_layout = QVBoxLayout(self)
+<<<<<<< HEAD
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(14)
 
@@ -467,6 +485,12 @@ class PatientRegistrationDialog(QDialog):
             "Edit Patient Record" if self.patient else "Register New Patient",
             "Fields marked * are required. Date fields open a calendar."
         ))
+=======
+
+        title = QLabel("Patient Registration")
+        title.setObjectName("cardTitle")
+        main_layout.addWidget(title)
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
         self.tabs = QTabWidget()
         main_layout.addWidget(self.tabs)
@@ -650,7 +674,10 @@ class PatientRegistrationDialog(QDialog):
         )
 
         self.tabs.addTab(treatment_tab, "Treatment Information")
+<<<<<<< HEAD
         polish_forms(self)
+=======
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
         # SAVE AND CANCEL BUTTONS
         buttons = QDialogButtonBox(
@@ -818,6 +845,7 @@ class MedicineDialog(QDialog):
         self.setMinimumWidth(450)
 
         layout = QVBoxLayout(self)
+<<<<<<< HEAD
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(14)
         layout.addWidget(make_dialog_header(
@@ -827,6 +855,9 @@ class MedicineDialog(QDialog):
         form = QFormLayout()
         form.setVerticalSpacing(12)
         form.setHorizontalSpacing(18)
+=======
+        form = QFormLayout()
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
         # Medicine name
         self.name = QLineEdit()
@@ -852,11 +883,16 @@ class MedicineDialog(QDialog):
         form.addRow("Quantity:", self.quantity)
 
         # Expiration date
+<<<<<<< HEAD
         self.expiry_date = QDateEdit()
         self.expiry_date.setCalendarPopup(True)
         self.expiry_date.setDisplayFormat("yyyy-MM-dd")
         self.expiry_date.setDateRange(QDate(2000, 1, 1), QDate(2100, 12, 31))
         self.expiry_date.setDate(QDate.currentDate().addYears(1))
+=======
+        self.expiry_date = QLineEdit()
+        self.expiry_date.setPlaceholderText("YYYY-MM-DD")
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         form.addRow("Expiration Date:", self.expiry_date)
 
         # Low-stock threshold
@@ -892,11 +928,17 @@ class MedicineDialog(QDialog):
             self.quantity.setText(
                 str(medicine.get("quantity", 0))
             )
+<<<<<<< HEAD
             expiry = QDate.fromString(
                 str(medicine.get("expiry_date", "")), "yyyy-MM-dd"
             )
             if expiry.isValid():
                 self.expiry_date.setDate(expiry)
+=======
+            self.expiry_date.setText(
+                str(medicine.get("expiry_date", ""))
+            )
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             self.threshold.setText(
                 str(medicine.get("low_stock_threshold",  20))
             )
@@ -1129,6 +1171,7 @@ class DashboardWindow(QMainWindow):
         self.login_window.show()
 
     def create_home_page(self):
+<<<<<<< HEAD
         from datetime import date as _date
 
         page = QWidget()
@@ -1149,10 +1192,23 @@ class DashboardWindow(QMainWindow):
             "Welcome back, " + self.user.get("full_name", "Staff")
         )
         welcome_title.setObjectName("heroTitle")
+=======
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
+
+        # Welcome section
+        welcome_title = QLabel(
+            "Welcome back, " + self.user.get("full_name", "Staff")
+        )
+        welcome_title.setObjectName("welcomeTitle")
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
         welcome_description = QLabel(
             "Here's an overview of your patient records and system activities."
         )
+<<<<<<< HEAD
         welcome_description.setObjectName("heroText")
         welcome_description.setWordWrap(True)
 
@@ -1165,6 +1221,13 @@ class DashboardWindow(QMainWindow):
         hero_layout.addWidget(date_label, 0, Qt.AlignmentFlag.AlignVCenter)
 
         layout.addWidget(hero)
+=======
+        welcome_description.setObjectName("pageDescription")
+        welcome_description.setWordWrap(True)
+
+        layout.addWidget(welcome_title)
+        layout.addWidget(welcome_description)
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
         # Summary cards
         summary_layout = QGridLayout()
@@ -1177,6 +1240,7 @@ class DashboardWindow(QMainWindow):
         except Exception:
             patient_count = 0
 
+<<<<<<< HEAD
         self.dashboard_inventory_labels = {}
 
         summary_items = [
@@ -1193,10 +1257,48 @@ class DashboardWindow(QMainWindow):
 
         for index, (
             title_text, value_text, description_text, key, accent, icon
+=======
+        
+        self.dashboard_inventory_labels = {}
+
+        summary_items = [
+            (
+                "Total Patients",
+                str(patient_count),
+                "Registered patient records",
+                None
+            ),
+            (
+                "Medicine Stock",
+                "0 types",
+                "0 total units available",
+                "medicine_stock"
+            ),
+            (
+                "Patients Expected Today",
+                "0",
+                "Patients with an appointment today",
+                "today_appointments"
+            ),
+            (
+                "Allocations",
+                "View Allocation",
+                "Track medicine allocations",
+                None
+            ),
+        ]
+
+        for index, (
+            title_text,
+            value_text,
+            description_text,
+            key
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         ) in enumerate(summary_items):
 
             card = QFrame()
             card.setObjectName("dashboardCard")
+<<<<<<< HEAD
             card.setProperty("accent", accent)
 
             card_layout = QVBoxLayout(card)
@@ -1213,12 +1315,28 @@ class DashboardWindow(QMainWindow):
             value = QLabel(value_text)
             value.setObjectName("metricValue")
             value.setProperty("accent", accent)
+=======
+
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(18, 16, 18, 16)
+            card_layout.setSpacing(8)
+
+            title = QLabel(title_text)
+            title.setObjectName("cardDescription")
+
+            value = QLabel(value_text)
+            value.setObjectName("metricValue")
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             value.setWordWrap(True)
 
             description = QLabel(description_text)
             description.setObjectName("cardDescription")
             description.setWordWrap(True)
 
+<<<<<<< HEAD
+=======
+            # Save the dashboard labels for live updates
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             if key == "medicine_stock":
                 self.dashboard_inventory_labels["types"] = value
                 self.dashboard_inventory_labels["units"] = description
@@ -1227,6 +1345,7 @@ class DashboardWindow(QMainWindow):
                 self.dashboard_today_appointments_label = value
                 self.dashboard_today_appointments_description = description
 
+<<<<<<< HEAD
             elif key == "allocations":
                 self.dashboard_allocation_label = value
                 self.dashboard_allocation_description = description
@@ -1240,10 +1359,27 @@ class DashboardWindow(QMainWindow):
 
         layout.addLayout(summary_layout)
 
+=======
+
+            card_layout.addWidget(title)
+            card_layout.addWidget(value)
+            card_layout.addWidget(description)
+
+            summary_layout.addWidget(
+                card,
+                index // 2,
+                index % 2
+            )
+
+        layout.addLayout(summary_layout)
+
+
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         # Lower dashboard panels
         panels_layout = QGridLayout()
         panels_layout.setSpacing(14)
 
+<<<<<<< HEAD
         schedule_card = QFrame()
         schedule_card.setObjectName("dashboardCard")
         schedule_card.setProperty("accent", "blue")
@@ -1253,18 +1389,33 @@ class DashboardWindow(QMainWindow):
         schedule_title = QLabel("Incoming Patient Schedule")
         schedule_title.setObjectName("cardTitle")
         schedule_title.setProperty("accent", "blue")
+=======
+        # Incoming appointments
+        schedule_card = QFrame()
+        schedule_card.setObjectName("dashboardCard")
+        schedule_layout = QVBoxLayout(schedule_card)
+
+        schedule_title = QLabel("Incoming Patient Schedule")
+        schedule_title.setObjectName("cardTitle")
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
         self.dashboard_schedule_message = QLabel(
             "Loading today's appointment..."
         )
+<<<<<<< HEAD
         self.dashboard_schedule_message.setObjectName("cardDescription")
         self.dashboard_schedule_message.setTextFormat(Qt.TextFormat.RichText)
+=======
+
+        self.dashboard_schedule_message.setObjectName("cardDescription")
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         self.dashboard_schedule_message.setWordWrap(True)
 
         schedule_layout.addWidget(schedule_title)
         schedule_layout.addWidget(self.dashboard_schedule_message)
         schedule_layout.addStretch()
 
+<<<<<<< HEAD
         inventory_card = QFrame()
         inventory_card.setObjectName("dashboardCard")
         inventory_card.setProperty("accent", "teal")
@@ -1279,6 +1430,23 @@ class DashboardWindow(QMainWindow):
         inventory_message.setObjectName("cardDescription")
         inventory_message.setTextFormat(Qt.TextFormat.RichText)
         inventory_message.setWordWrap(True)
+=======
+        # Inventory alerts
+        inventory_card = QFrame()
+        inventory_card.setObjectName("dashboardCard")
+        inventory_layout = QVBoxLayout(inventory_card)
+
+        inventory_title = QLabel("Inventory Overview")
+        inventory_title.setObjectName("cardTitle")
+
+        inventory_message = QLabel(
+            "Loading inventory information..."
+        )
+        inventory_message.setObjectName("cardDescription")
+        inventory_message.setWordWrap(True)
+
+        # Keep a reference so the dashboard can update it
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         self.dashboard_inventory_message = inventory_message
 
         inventory_layout.addWidget(inventory_title)
@@ -1287,14 +1455,18 @@ class DashboardWindow(QMainWindow):
 
         panels_layout.addWidget(schedule_card, 0, 0)
         panels_layout.addWidget(inventory_card, 0, 1)
+<<<<<<< HEAD
         panels_layout.setColumnStretch(0, 1)
         panels_layout.setColumnStretch(1, 1)
+=======
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
         layout.addLayout(panels_layout)
 
         # Quick access
         quick_card = QFrame()
         quick_card.setObjectName("dashboardCard")
+<<<<<<< HEAD
         quick_card.setProperty("accent", "rose")
         quick_layout = QVBoxLayout(quick_card)
         quick_layout.setContentsMargins(20, 16, 20, 18)
@@ -1319,6 +1491,26 @@ class DashboardWindow(QMainWindow):
             button = QPushButton(label)
             button.setObjectName("quickAction")
             button.setProperty("accent", accent)
+=======
+        quick_layout = QVBoxLayout(quick_card)
+
+        quick_title = QLabel("Quick Actions")
+        quick_title.setObjectName("cardTitle")
+        quick_layout.addWidget(quick_title)
+
+        actions_layout = QHBoxLayout()
+
+        actions = [
+            ("Patient Records", 1),
+            ("Inventory", 2),
+            ("Allocation", 3),
+            ("Reports", 5),
+        ]
+
+        for label, page_index in actions:
+            button = QPushButton(label)
+            button.setObjectName("loginButton")
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(
                 lambda checked=False, i=page_index: self.change_page(i)
@@ -1329,6 +1521,7 @@ class DashboardWindow(QMainWindow):
         layout.addWidget(quick_card)
         layout.addStretch()
 
+<<<<<<< HEAD
         self.update_dashboard_allocations()
 
         scroll = QScrollArea()
@@ -1357,6 +1550,12 @@ class DashboardWindow(QMainWindow):
             f"{units} units issued in total"
         )
 
+=======
+        return page
+
+
+    
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
     def create_patients_page(self):
         self.patient_service = PatientService()
 
@@ -1416,7 +1615,11 @@ class DashboardWindow(QMainWindow):
         )
 
         delete_button = QPushButton("Delete Selected")
+<<<<<<< HEAD
         delete_button.setObjectName("dangerButton")
+=======
+        delete_button.setObjectName("linkButton")
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         delete_button.clicked.connect(
             self.delete_patient_record
         )
@@ -1604,7 +1807,11 @@ class DashboardWindow(QMainWindow):
             return
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Patient History — {patient_id}")
+<<<<<<< HEAD
         dialog.resize(980, 700)
+=======
+        dialog.resize(900, 480)
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         layout = QVBoxLayout(dialog)
         table = QTableWidget(len(history), 5)
         table.setHorizontalHeaderLabels(["Version", "Date / Time", "Action", "Updated By", "Change Summary"])
@@ -1630,7 +1837,16 @@ class DashboardWindow(QMainWindow):
             if selected_row < 0 or selected_row >= len(history):
                 return
             entry = history[selected_row]
+<<<<<<< HEAD
             details.setHtml(report_html.history_entry_html(entry))
+=======
+            import json
+            details.setPlainText(
+                "PREVIOUS RECORD\n" + json.dumps(entry.get("previous_data", {}), ensure_ascii=False, indent=2)
+                + "\n\nSAVED RECORD FOR THIS VERSION\n"
+                + json.dumps(entry.get("new_data", {}), ensure_ascii=False, indent=2)
+            )
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         table.cellClicked.connect(show_details)
         layout.addWidget(details, 1)
         close_button = QPushButton("Close")
@@ -1814,7 +2030,11 @@ class DashboardWindow(QMainWindow):
         edit_button.clicked.connect(self.edit_medicine)
 
         delete_button = QPushButton("Delete Selected")
+<<<<<<< HEAD
         delete_button.setObjectName("dangerButton")
+=======
+        delete_button.setObjectName("linkButton")
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         delete_button.clicked.connect(self.delete_medicine)
 
         refresh_button = QPushButton("Refresh")
@@ -1983,6 +2203,7 @@ class DashboardWindow(QMainWindow):
             )
             return
 
+<<<<<<< HEAD
         import html as _html
 
         rows = []
@@ -2011,6 +2232,24 @@ class DashboardWindow(QMainWindow):
 
     def refresh_inventory(self):
         self.update_dashboard_allocations()
+=======
+        lines = []
+
+        for appointment_date, patient in upcoming[:5]:
+            name = patient.get("full_name", "Unnamed Patient")
+            lines.append(f"{appointment_date} — {name}")
+
+        if len(upcoming) > 5:
+            lines.append(
+                f"...and {len(upcoming) - 5} more appointment(s)."
+            )
+
+        self.dashboard_schedule_message.setText(
+            "\n".join(lines)
+        )
+
+    def refresh_inventory(self):
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         self.inventory_search.clear()
         self.load_inventory_records()
         self.update_inventory_summary()
@@ -2086,6 +2325,7 @@ class DashboardWindow(QMainWindow):
         )
 
         # Update the Inventory Overview panel
+<<<<<<< HEAD
         expiring = summary.get("expiring_soon", 0)
         expired = summary.get("expired", 0)
 
@@ -2107,6 +2347,13 @@ class DashboardWindow(QMainWindow):
             + stat("Expiring within 90 days", expiring, "#B45309")
             + stat("Expired batches", expired, "#B91C1C")
             + "</table>"
+=======
+        self.dashboard_inventory_message.setText(
+            f"Medicine types: {total_types}\n"
+            f"Total units: {total_units}\n"
+            f"Low-stock items: {low_stock}\n"
+            f"Out-of-stock items: {out_of_stock}"
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         )
 
 
@@ -2213,6 +2460,7 @@ class DashboardWindow(QMainWindow):
     def create_reports_page(self):
         """Search, preview and export patient and medicine records."""
         self.report_service = ReportService()
+<<<<<<< HEAD
         self._report_html_text = ""
 
         page = QWidget()
@@ -2231,12 +2479,18 @@ class DashboardWindow(QMainWindow):
         heading.setObjectName("cardTitle")
         heading.setProperty("accent", "blue")
         controls_layout.addWidget(heading)
+=======
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setSpacing(12)
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
         intro = QLabel(
             "Find patient records, version history, referral forms, "
             "allocation history, and stock movement totals. Export any "
             "preview as a PDF for printing or as an HTML document."
         )
+<<<<<<< HEAD
         intro.setObjectName("cardDescription")
         intro.setWordWrap(True)
         controls_layout.addWidget(intro)
@@ -2245,6 +2499,12 @@ class DashboardWindow(QMainWindow):
         form.setVerticalSpacing(10)
         form.setHorizontalSpacing(18)
 
+=======
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
+
+        form = QFormLayout()
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         self.report_type = QComboBox()
         self.report_type.addItems([
             "Patient Record",
@@ -2269,6 +2529,7 @@ class DashboardWindow(QMainWindow):
         self.referral_facility = QLineEdit()
         self.referral_facility.setPlaceholderText("Receiving facility / specialist")
         form.addRow("Referred to (optional):", self.referral_facility)
+<<<<<<< HEAD
         controls_layout.addLayout(form)
 
         buttons = QHBoxLayout()
@@ -2298,6 +2559,27 @@ class DashboardWindow(QMainWindow):
         self.report_preview.setObjectName("reportPreview")
         self.report_preview.setReadOnly(True)
         self.report_preview.document().setDocumentMargin(24)
+=======
+        layout.addLayout(form)
+
+        buttons = QHBoxLayout()
+        search_button = QPushButton("SEARCH / GENERATE PREVIEW")
+        search_button.setObjectName("loginButton")
+        search_button.clicked.connect(self.generate_report_preview)
+        buttons.addWidget(search_button)
+
+        pdf_button = QPushButton("EXPORT PDF / PRINT")
+        pdf_button.clicked.connect(self.export_report_pdf)
+        buttons.addWidget(pdf_button)
+
+        html_button = QPushButton("SAVE DOCUMENT (HTML)")
+        html_button.clicked.connect(self.export_report_html)
+        buttons.addWidget(html_button)
+        layout.addLayout(buttons)
+
+        self.report_preview = QTextEdit()
+        self.report_preview.setReadOnly(True)
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         self.report_preview.setPlaceholderText(
             "Your printable document preview will appear here."
         )
@@ -2350,6 +2632,7 @@ class DashboardWindow(QMainWindow):
                 )
                 self.report_record.addItem(label, row.get("transaction_id", ""))
 
+<<<<<<< HEAD
     def generate_report_preview(self):
         kind = self.report_type.currentText()
         patient_id = self.report_patient_id.text().strip()
@@ -2357,6 +2640,41 @@ class DashboardWindow(QMainWindow):
         staff_name = self.user.get("full_name", "Staff")
         staff_id = self.user.get("staff_id", "")
         generated_by = "{} ({})".format(staff_name, staff_id)
+=======
+    @staticmethod
+    def _report_html(title, rows, subtitle=""):
+        import html
+        parts = [
+            "<html><head><meta charset='utf-8'><style>"
+            "body{font-family:Arial,sans-serif;font-size:10pt;color:#222}"
+            "h1{font-size:18pt;color:#17365d}h2{font-size:12pt;color:#17365d}"
+            "table{border-collapse:collapse;width:100%}td,th{border:1px solid #aaa;"
+            "padding:6px;text-align:left;vertical-align:top}th{background:#eaf0f7}"
+            ".muted{color:#666;font-size:9pt}.conf{margin-top:24px;border-top:1px solid #aaa;"
+            "padding-top:8px;font-size:9pt}</style></head><body>",
+            "<h1>HIV ARV Allocation and Management System</h1>",
+            "<h2>{}</h2>".format(html.escape(title)),
+            "<p class='muted'>{}</p>".format(html.escape(subtitle)),
+            "<table>"
+        ]
+        for key, value in rows:
+            parts.append("<tr><th>{}</th><td>{}</td></tr>".format(
+                html.escape(str(key)), html.escape(str(value if value not in (None, "") else "—"))
+            ))
+        parts.append("</table><p class='conf'>CONFIDENTIAL — For authorized care and program use only.</p></body></html>")
+        return "".join(parts)
+
+    def generate_report_preview(self):
+        import html
+        kind = self.report_type.currentText()
+        patient_id = self.report_patient_id.text().strip()
+        selected_id = self.report_record.currentData()
+        rows = []
+        title = kind
+        subtitle = "Generated by: {} ({})".format(
+            self.user.get("full_name", "Staff"), self.user.get("staff_id", "")
+        )
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
         if kind in ("Patient Record", "Patient Record History", "Referral Form"):
             if not patient_id:
@@ -2366,6 +2684,7 @@ class DashboardWindow(QMainWindow):
             if not patient:
                 QMessageBox.warning(self, "No patient found", "No patient record matches that Patient ID.")
                 return
+<<<<<<< HEAD
 
             if kind == "Patient Record":
                 document = report_html.patient_record_html(patient, generated_by)
@@ -2377,6 +2696,37 @@ class DashboardWindow(QMainWindow):
                     staff_name,
                     staff_id
                 )
+=======
+            if kind == "Patient Record":
+                preferred = [
+                    ("Patient ID", "patient_id"), ("Full Name", "full_name"),
+                    ("Date of Birth", "date_of_birth"), ("Age", "age"), ("Sex", "sex"),
+                    ("Contact Number", "contact_number"), ("Address", "address"),
+                    ("Diagnosis", "diagnosis"), ("Diagnosis Date", "diagnosis_date"),
+                    ("Medical History", "medical_history"), ("Conditions", "conditions"),
+                    ("Allergies", "allergies"), ("Current Medications", "current_medications"),
+                    ("Clinical Notes", "clinical_notes"), ("Attending Physician", "attending_physician"),
+                    ("ARV Regimen", "arv_regimen"), ("Treatment Start", "treatment_start"),
+                    ("Treatment Status", "treatment_status"), ("Next Appointment", "next_appointment"),
+                    ("Follow-up Notes", "follow_up_notes"), ("Date Registered", "date_registered")
+                ]
+                rows = [(label, patient.get(key, "")) for label, key in preferred]
+            elif kind == "Referral Form":
+                title = "Patient Referral Form"
+                rows = [
+                    ("Referral Date", __import__("datetime").date.today().isoformat()),
+                    ("Patient ID", patient.get("patient_id", "")),
+                    ("Patient Name", patient.get("full_name", "")),
+                    ("Date of Birth / Age", "{} / {}".format(patient.get("date_of_birth", ""), patient.get("age", ""))),
+                    ("Diagnosis", patient.get("diagnosis", "")),
+                    ("Current ARV Regimen", patient.get("arv_regimen", "")),
+                    ("Reason for Referral", self.referral_reason.text().strip() or "Not provided"),
+                    ("Referred To / Facility", self.referral_facility.text().strip() or "Not specified"),
+                    ("Relevant Clinical Notes", patient.get("clinical_notes", "")),
+                    ("Referring Physician / Staff", self.user.get("full_name", "")),
+                    ("Signature", "________________________________")
+                ]
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             else:
                 history = self.report_service.patient_history(patient_id)
                 if selected_id:
@@ -2384,8 +2734,22 @@ class DashboardWindow(QMainWindow):
                 if not history:
                     QMessageBox.information(self, "No history", "No saved history entries were found for this patient.")
                     return
+<<<<<<< HEAD
                 document = report_html.patient_history_html(patient, history, generated_by)
 
+=======
+                for record in history:
+                    rows.extend([
+                        ("Audit ID", record.get("audit_id", "")),
+                        ("Version / Action", "{} / {}".format(record.get("version", ""), record.get("action_type", ""))),
+                        ("Date and Time", "{} {}".format(record.get("date", ""), record.get("time", ""))),
+                        ("Edited By", "{} ({})".format(record.get("full_name", ""), record.get("staff_id", ""))),
+                        ("Change Summary", record.get("changes_summary", "")),
+                        ("Previous Data", __import__("json").dumps(record.get("previous_data", {}), ensure_ascii=False, indent=2)),
+                        ("Updated Data", __import__("json").dumps(record.get("new_data", {}), ensure_ascii=False, indent=2)),
+                        ("—", "—")
+                    ])
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         elif kind == "Allocation History":
             records = self.report_service.allocations(patient_id)
             if selected_id:
@@ -2393,13 +2757,30 @@ class DashboardWindow(QMainWindow):
             if not records:
                 QMessageBox.information(self, "No allocations", "No allocation records match the selected criteria.")
                 return
+<<<<<<< HEAD
             document = report_html.allocation_html(records, patient_id, generated_by)
 
+=======
+            for r in records:
+                rows.extend([
+                    ("Allocation ID", r.get("allocation_id", "")),
+                    ("Patient", "{} ({})".format(r.get("patient_name", ""), r.get("patient_id", ""))),
+                    ("Medicine", "{} {}".format(r.get("medicine_name", ""), r.get("strength", ""))),
+                    ("Quantity", r.get("quantity", "")), ("Dosage", r.get("dosage", "")),
+                    ("Allocation Date", r.get("allocation_date", "")),
+                    ("Next Follow-up", r.get("next_followup_date", "")),
+                    ("Status", r.get("status", "")), ("Allocated By", r.get("allocated_by", "")),
+                    ("Batch Details", __import__("json").dumps(r.get("batches", []), ensure_ascii=False, indent=2)),
+                    ("Notes / Cancellation Reason", "{} {}".format(r.get("notes", ""), r.get("cancel_reason", ""))),
+                    ("—", "—")
+                ])
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         else:
             records = self.report_service.transactions()
             if selected_id:
                 records = [r for r in records if r.get("transaction_id") == selected_id]
             summary = self.report_service.stock_summary()
+<<<<<<< HEAD
             document = report_html.stock_html(records, summary, generated_by)
 
         self._report_html_text = document
@@ -2409,12 +2790,39 @@ class DashboardWindow(QMainWindow):
         if not self._report_html_text:
             self.generate_report_preview()
         if not self._report_html_text:
+=======
+            rows = [
+                ("Total quantity received (stock in)", summary.get("stock_in", 0)),
+                ("Total quantity issued / removed (stock out)", summary.get("stock_out", 0)),
+                ("Net movement (in minus out)", summary.get("stock_in", 0) - summary.get("stock_out", 0)),
+                ("Number of movement records", len(records)),
+                ("", "")
+            ]
+            for r in records:
+                rows.extend([
+                    ("Transaction ID", r.get("transaction_id", "")),
+                    ("Date", r.get("transaction_date", "")),
+                    ("Movement", r.get("transaction_type", "")),
+                    ("Medicine / Strength", "{} {}".format(r.get("medicine_name", ""), r.get("strength", ""))),
+                    ("Batch", r.get("batch_number", "")), ("Quantity", r.get("quantity", "")),
+                    ("Balance After", r.get("balance_after", "")),
+                    ("Reference / Remarks", "{} / {}".format(r.get("reference", ""), r.get("remarks", ""))),
+                    ("Performed By", r.get("performed_by", "")), ("—", "—")
+                ])
+        self.report_preview.setHtml(self._report_html(title, rows, subtitle))
+
+    def export_report_pdf(self):
+        if not self.report_preview.toPlainText().strip():
+            self.generate_report_preview()
+        if not self.report_preview.toPlainText().strip():
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             return
         path, _ = QFileDialog.getSaveFileName(self, "Save printable PDF", "system_report.pdf", "PDF files (*.pdf)")
         if not path:
             return
         if not path.lower().endswith(".pdf"):
             path += ".pdf"
+<<<<<<< HEAD
 
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
@@ -2434,6 +2842,18 @@ class DashboardWindow(QMainWindow):
         if not self._report_html_text:
             self.generate_report_preview()
         if not self._report_html_text:
+=======
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+        printer.setOutputFileName(path)
+        self.report_preview.document().print(printer)
+        QMessageBox.information(self, "PDF saved", "Printable report saved to:\\n" + path)
+
+    def export_report_html(self):
+        if not self.report_preview.toPlainText().strip():
+            self.generate_report_preview()
+        if not self.report_preview.toPlainText().strip():
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             return
         path, _ = QFileDialog.getSaveFileName(self, "Save editable document", "system_report.html", "HTML documents (*.html)")
         if not path:
@@ -2441,8 +2861,13 @@ class DashboardWindow(QMainWindow):
         if not path.lower().endswith(".html"):
             path += ".html"
         with open(path, "w", encoding="utf-8") as file:
+<<<<<<< HEAD
             file.write(self._report_html_text)
         QMessageBox.information(self, "Document saved", "HTML document saved to:\n" + path)
+=======
+            file.write(self.report_preview.toHtml())
+        QMessageBox.information(self, "Document saved", "HTML document saved to:\\n" + path)
+>>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
     def create_placeholder_page(self, title, description):
 
