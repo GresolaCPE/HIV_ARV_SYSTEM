@@ -112,14 +112,9 @@ class TransactionService(BaseService):
             return False, f"Could not record the transaction: {error}"
 
         staff_info = staff if isinstance(staff, dict) else {} # Declared for auditing
-<<<<<<< HEAD
         self.security.log_service_edit(
             service_name="TransactionService",
             record_id=medicine.get("medicine_id"),
-=======
-        self.security.log_patient_edit(
-            patient_id=medicine.get("medicine_id"),  # Using record/item ID tracking
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             username=staff_info.get("username", "System"),
             staff_id=staff_info.get("staff_id", "System"),
             full_name=staff_info.get("full_name", "System"),
@@ -207,8 +202,4 @@ class TransactionService(BaseService):
 
             results.append(record)
 
-<<<<<<< HEAD
         return True, results
-=======
-        return True, results
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
