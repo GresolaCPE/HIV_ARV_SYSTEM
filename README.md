@@ -22,26 +22,31 @@ By the end of this course, students will be able to design and implement GUI-bas
 HIV_ARV_SYSTEM/
 ├── backend/
 │   ├── __init__.py
-│   ├── auth_service.py
-│   ├── patient_service.py
-│   ├── inventory_service.py
 │   ├── allocation_service.py
-│   ├── transaction_service.py
-│   ├── security_service.py
+│   ├── auth_service.py
 │   ├── base_service.py
-│   └── storage.py           
-├── data/                     
-│   ├── users.json
-│   ├── authorized_staff.json
-│   ├── patients.json
-│   ├── inventory_data.json
+│   ├── inventory_service.py
+│   ├── patient_service.py
+│   ├── security_service.py
+│   ├── storage.py
+│   └── transaction_service.py           
+├── data/
 │   ├── allocations.json
-│   ├── stock_transactions.json
+│   ├── authorized_staff.json
+│   ├── inventory_data.json            
 │   ├── login_audit.json
-│   └── patient_audit.json
+│   ├── patients.json
+│   ├── patient_audit.json
+│   ├── stock_transactions.json
+│   └── users.json
+├── allocation_page.py
 ├── gui.py
+├── mail_followup.py
 ├── main.py
+├── schedule_page.py
+├── schedule_service.py
 ├── style.qss
+├── system_report.pdf
 └── README.md
 ```
 
