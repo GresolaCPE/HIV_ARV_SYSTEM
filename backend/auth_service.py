@@ -51,14 +51,16 @@ class AuthService:
         if not all([staff_id, full_name, username, password]):
             return False, "Please complete all fields."
 
-        if len(username) < 4 or any(c.isspace() for c in username):
-            return False, "Username must be at least 4 characters with no spaces."
+        if len(username) < 3 or any(c.isspace() for c in username):
+            return False, "Username must be at least 3 characters with no spaces."
 
-        if len(password) < 10:
-            return False, "Password must be at least 10 characters."
+        if len(password) < 8:
+            return False, "Password must be at least 8 characters."
 
+        # For a classroom/demo deployment, allow self-registration when no
+        # matching pre-authorized staff entry exists. If an administrator has
+        # explicitly listed this staff ID, retain the claim/name checks.
         authorized_staff = self.storage.load(self.authorized_file)
-
         authorized_record = next(
             (
                 staff for staff in authorized_staff
@@ -67,16 +69,11 @@ class AuthService:
             None
         )
 
-        if authorized_record is None:
-            return False, "This staff ID is not authorized."
-
-        if authorized_record.get("claimed", False):
-            return False, "This staff ID has already been registered."
-
-        if authorized_record.get("full_name", "").strip().casefold() != (
-            full_name.casefold()
-        ):
-            return False, "The name does not match the authorized record."
+        if authorized_record is not None:
+            if authorized_record.get("claimed", False):
+                return False, "This staff ID has already been registered."
+            if authorized_record.get("full_name", "").strip().casefold() != full_name.casefold():
+                return False, "The name does not match the authorized record."
 
         users = self.storage.load(self.users_file)
 
@@ -106,8 +103,9 @@ class AuthService:
         users.append(new_user)
         self.storage.save(self.users_file, users)
 
-        authorized_record["claimed"] = True
-        self.storage.save(self.authorized_file, authorized_staff)
+        if authorized_record is not None:
+            authorized_record["claimed"] = True
+            self.storage.save(self.authorized_file, authorized_staff)
 
         return True, "Registration successful. You can now sign in."
 

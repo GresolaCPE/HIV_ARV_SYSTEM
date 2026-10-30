@@ -52,9 +52,20 @@ HIV_ARV_SYSTEM/
 | Role | Name |
 | :---: | :---: |
 | **Lead Full Stack Developer** | Gresola, Aryanna Keith G. |
-| **Documentation** | Nacion, Daniela Joy N. |
+| **Documentation and Full Stack Developer** | Nacion, Daniela Joy N. |
 | **Backend Developer** | Ramirez, Angel Mae C. |
 | **Frontend Developer** | Salcedo, Lance Cristopher S. |
 | **Full Stack Developer** | Santos, Paterno Miguel R. |
 
 ---
+
+## Account registration and printable reports
+
+- Open the app and choose **Register** to create a local staff account. Enter a unique Staff ID, full name, username (at least 3 characters, no spaces), and password (at least 8 characters). If the Staff ID is already present in `data/authorized_staff.json`, the listed name and unused status are still checked. Otherwise, self-registration is enabled for this classroom/demo build.
+- From **Report**, select a document type and enter a Patient ID where relevant.
+- **Patient Record History** lets you select one saved version/audit entry or **All records**.
+- **Allocation History** lets you retrieve one allocation or all allocations (optionally filtered by Patient ID).
+- **Medicine Stock Movement** summarizes total stock received and issued and lists the underlying stock transaction records.
+- Use **EXPORT PDF / PRINT** for a printable PDF, or **SAVE DOCUMENT (HTML)** for a document that can be opened and edited in a browser or word processor.
+
+The system stores patient and treatment data locally in JSON files. Use only fictional/test data during demonstrations and keep generated reports confidential.
