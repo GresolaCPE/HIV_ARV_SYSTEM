@@ -8,13 +8,9 @@ class ScheduleService:
     def __init__(self):
         self.patient_service = PatientService()
         self.storage = JSONStorage()
-<<<<<<< HEAD
-        self.security_service = SecurityService()
    
-=======
         self.security_service = SecurityService(self.storage, self.patient_service) 
 
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
     def get_all_patients(self):
         """Return all registered patients."""
         success, patients = self.patient_service.get_patients()

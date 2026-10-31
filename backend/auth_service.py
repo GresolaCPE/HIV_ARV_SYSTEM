@@ -11,7 +11,6 @@ except ImportError:
     from backend.storage import JSONStorage
     from backend.security_service import SecurityService
 
-
 class AuthService:
     def __init__(self):
         self.storage = JSONStorage()

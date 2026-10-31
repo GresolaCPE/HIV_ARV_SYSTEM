@@ -1,4 +1,5 @@
 import os
+import importlib.util
 
 from PyQt6.QtCore import Qt, QDate, QMarginsF
 from PyQt6.QtWidgets import (
@@ -41,7 +42,17 @@ from allocation_page import AllocationPage
 from backend.security_service import SecurityService
 from backend.report_service import ReportService
 from schedule_page import SchedulePage
-import report_html
+
+_report_html_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "report_html.py"
+)
+_report_html_spec = importlib.util.spec_from_file_location(
+    "report_html", _report_html_path
+)
+if _report_html_spec is None or _report_html_spec.loader is None:
+    raise ImportError(f"Unable to load report module: {_report_html_path}")
+report_html = importlib.util.module_from_spec(_report_html_spec)
+_report_html_spec.loader.exec_module(report_html)
 
 
 def load_stylesheet():

@@ -1,23 +1,10 @@
 import copy
-<<<<<<< HEAD
-from importlib import import_module
-=======
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
 from .base_service import BaseService, guarded
 from .inventory_service import InventoryService
 from .patient_service import PatientService
 from .transaction_service import TransactionService
-<<<<<<< HEAD
-try:
-    SecurityService = import_module(
-        ".security_service", package=__package__
-    ).SecurityService
-except ImportError:
-    SecurityService = None
-=======
 from backend.security_service import SecurityService
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
 
 class AllocationService(BaseService):
@@ -33,13 +20,7 @@ class AllocationService(BaseService):
         security_service=None
     ):
         super().__init__(storage)
-<<<<<<< HEAD
-        self.security = security_service or (
-            SecurityService(self.storage) if SecurityService is not None else None
-        )
-=======
         self.security = security_service or SecurityService(self.storage)
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
         self.inventory = inventory_service or InventoryService()
         self.patients = patient_service or PatientService()
         self.transactions = transaction_service or TransactionService(
