@@ -299,7 +299,6 @@ QLabel#cardDescription {
     color: #63748B;
     font-size: 12px;
 }
-<<<<<<< HEAD
 
 /* SECONDARY ACTION BUTTON (Schedule page and follow-up email dialog) */
 QPushButton#primaryButton {
@@ -636,5 +635,3 @@ QTextEdit#reportPreview {
     border-radius: 10px;
     padding: 6px;
 }
-=======
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
