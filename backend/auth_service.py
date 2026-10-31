@@ -2,17 +2,8 @@ import hashlib
 import hmac
 import secrets
 from datetime import datetime, timezone
-<<<<<<< HEAD
-from .storage import JSONStorage
-try:
-    from .security_service import SecurityService  # type: ignore[reportMissingImports]
-except ImportError:
-    # Support running this module directly as well as importing it as a package.
-    from security_service import SecurityService  # type: ignore[reportMissingImports]
-=======
 from backend.storage import JSONStorage
 from backend.security_service import SecurityService
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
 
 class AuthService:
     def __init__(self):
@@ -140,12 +131,9 @@ class AuthService:
         )
 
         if user is None:
-<<<<<<< HEAD
             self.security.log_login_attempt(
                 username=username, staff_id=None, full_name=None, success=False
             )
-=======
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             return False, "Invalid username or password."
 
         if not self._verify_password(
@@ -153,15 +141,12 @@ class AuthService:
             user["salt"],
             user["password_hash"]
         ):
-<<<<<<< HEAD
             self.security.log_login_attempt(
                 username=user["username"],
                 staff_id=user["staff_id"],
                 full_name=user["full_name"],
                 success=False
             )
-=======
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             return False, "Invalid username or password."
 
         logged_in_user = {
