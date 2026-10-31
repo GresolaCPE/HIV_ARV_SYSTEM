@@ -1,18 +1,16 @@
+
 import hashlib
 import hmac
 import secrets
 from datetime import datetime, timezone
-<<<<<<< HEAD
-from .storage import JSONStorage
+
 try:
-    from .security_service import SecurityService  # type: ignore[reportMissingImports]
+    from .storage import JSONStorage
+    from .security_service import SecurityService
 except ImportError:
-    # Support running this module directly as well as importing it as a package.
-    from security_service import SecurityService  # type: ignore[reportMissingImports]
-=======
-from backend.storage import JSONStorage
-from backend.security_service import SecurityService
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
+    from backend.storage import JSONStorage
+    from backend.security_service import SecurityService
+
 
 class AuthService:
     def __init__(self):
@@ -50,9 +48,7 @@ class AuthService:
     # STAFF REGISTRATION
     # -----------------------------
 
-    def register_staff(
-        self, staff_id, full_name, username, password
-    ):
+    def register_staff(self, staff_id, full_name, username, password):
         staff_id = staff_id.strip().upper()
         full_name = full_name.strip()
         username = username.strip()
@@ -66,10 +62,10 @@ class AuthService:
         if len(password) < 8:
             return False, "Password must be at least 8 characters."
 
-        # For a classroom/demo deployment, allow self-registration when no
-        # matching pre-authorized staff entry exists. If an administrator has
-        # explicitly listed this staff ID, retain the claim/name checks.
+        # Allow self-registration when no matching pre-authorized
+        # staff entry exists. If an entry exists, retain claim/name checks.
         authorized_staff = self.storage.load(self.authorized_file)
+
         authorized_record = next(
             (
                 staff for staff in authorized_staff
@@ -81,6 +77,7 @@ class AuthService:
         if authorized_record is not None:
             if authorized_record.get("claimed", False):
                 return False, "This staff ID has already been registered."
+
             if authorized_record.get("full_name", "").strip().casefold() != full_name.casefold():
                 return False, "The name does not match the authorized record."
 
@@ -140,12 +137,12 @@ class AuthService:
         )
 
         if user is None:
-<<<<<<< HEAD
             self.security.log_login_attempt(
-                username=username, staff_id=None, full_name=None, success=False
+                username=username,
+                staff_id=None,
+                full_name=None,
+                success=False
             )
-=======
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             return False, "Invalid username or password."
 
         if not self._verify_password(
@@ -153,15 +150,12 @@ class AuthService:
             user["salt"],
             user["password_hash"]
         ):
-<<<<<<< HEAD
             self.security.log_login_attempt(
                 username=user["username"],
                 staff_id=user["staff_id"],
                 full_name=user["full_name"],
                 success=False
             )
-=======
->>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
             return False, "Invalid username or password."
 
         logged_in_user = {
@@ -176,4 +170,5 @@ class AuthService:
             full_name=user["full_name"],
             success=True
         )
+
         return True, logged_in_user
