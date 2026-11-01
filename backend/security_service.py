@@ -1,6 +1,6 @@
 import os
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from backend.storage import JSONStorage
 
 
@@ -11,6 +11,24 @@ class SecurityService:
         self.patient_audit_file = "patient_audit.json"
         self.service_audit_file = "service_audit.json"
         self._ensure_files()
+
+    @staticmethod
+    def _localize_audit_record(record):
+        """Return a display copy with date/time converted to this computer's local timezone."""
+        item = dict(record)
+        raw = item.get("timestamp")
+        if raw:
+            try:
+                parsed = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    parsed = parsed.astimezone()
+                local_dt = parsed.astimezone()
+                item["date"] = local_dt.strftime("%Y-%m-%d")
+                item["time"] = local_dt.strftime("%H:%M:%S")
+                item["timestamp_local"] = local_dt.isoformat()
+            except (TypeError, ValueError, OverflowError):
+                pass
+        return item
 
     def _ensure_files(self):
         """Ensure security and audit log files exist with proper initial structure."""
@@ -38,7 +56,7 @@ class SecurityService:
         if not isinstance(records, list):
             records = []
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now().astimezone()
         entry = {
             "audit_id": f"AUDIT-SV-{len(records) + 1:05d}",
             "service_name": str(service_name),
@@ -68,7 +86,7 @@ class SecurityService:
         if not isinstance(logs, list):
             logs = []
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now().astimezone()
         log_entry = {
             "id": f"LOG-{len(logs) + 1:05d}",
             "username": str(username).strip(),
@@ -94,6 +112,7 @@ class SecurityService:
             return []
 
         search_query = str(search_query).strip().lower()
+        logs = [self._localize_audit_record(record) for record in logs]
         if not search_query:
             return logs
 
@@ -122,7 +141,7 @@ class SecurityService:
         patient_history = [r for r in audit_records if r.get("patient_id") == patient_id]
         next_version = len(patient_history) + 1
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now().astimezone()
         audit_entry = {
             "audit_id": f"AUDIT-PT-{len(audit_records) + 1:05d}",
             "patient_id": patient_id,
@@ -153,7 +172,7 @@ class SecurityService:
             return []
 
         patient_id = str(patient_id).strip()
-        history = [r for r in audit_records if r.get("patient_id") == patient_id]
+        history = [self._localize_audit_record(r) for r in audit_records if r.get("patient_id") == patient_id]
         # Sort chronologically by version
         history.sort(key=lambda x: x.get("version", 1))
         return history
@@ -168,6 +187,7 @@ class SecurityService:
             return []
 
         search_query = str(search_query).strip().lower()
+        audit_records = [self._localize_audit_record(record) for record in audit_records]
         if not search_query:
             return audit_records
 

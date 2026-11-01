@@ -216,7 +216,7 @@ def patient_record_html(patient, generated_by):
         fields([
             ("Full Name", p("full_name")), ("Date of Birth", p("date_of_birth")),
             ("Age", p("age")), ("Sex", p("sex")),
-            ("Contact Number", p("contact_number")), ("Address", p("address")),
+            ("Contact Number", p("contact_number")), ("Email Address", p("email")), ("Address", p("address")),
             ("Emergency Contact", p("emergency_contact")),
             ("Relationship", p("emergency_relationship")),
         ]),

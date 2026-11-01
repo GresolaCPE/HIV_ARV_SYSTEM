@@ -80,6 +80,7 @@ class PatientService:
             "age": age,
             "sex": profile.get("sex", ""),
             "contact_number": profile.get("contact_number", ""),
+            "email": str(profile.get("email", "")).strip(),
             "address": profile.get("address", ""),
             "emergency_contact": profile.get("emergency_contact", ""),
             "emergency_relationship": profile.get("emergency_relationship", ""),

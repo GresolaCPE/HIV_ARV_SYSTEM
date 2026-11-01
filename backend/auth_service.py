@@ -1,7 +1,7 @@
 import hashlib
 import hmac
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime
 from backend.storage import JSONStorage
 from backend.security_service import SecurityService
 
@@ -97,7 +97,7 @@ class AuthService:
             "username": username,
             "salt": salt,
             "password_hash": password_hash,
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "created_at": datetime.now().astimezone().isoformat()
         }
 
         users.append(new_user)

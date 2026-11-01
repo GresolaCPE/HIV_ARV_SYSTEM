@@ -1,133 +1,109 @@
-# PLEASE READ:
-# There is a block of code below that is commented.
-# For testing purposes, uncomment the block
-
-import smtplib # SMTP library for sending emails. Don't remove this import even if dimmed.
+"""Privacy-conscious follow-up email dialog. Configure SMTP via environment variables."""
+import os
+import re
+import smtplib
+from email.message import EmailMessage
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
+    QTextEdit, QPushButton, QMessageBox, QHBoxLayout, QLabel)
 from backend.security_service import SecurityService
-# MIME - Multipurpose Internet Mail Extensions: For email formatting.
-from email.mime.text import MIMEText # Turns text to MIME for emails.
-from email.mime.multipart import MIMEMultipart # For recepient and sender container and email body.
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QLineEdit, 
-    QTextEdit, QPushButton, QMessageBox, QHBoxLayout, QLabel
-)
 
 class FollowUpEmailDialog(QDialog):
-    def __init__(self, patient_data=None, security_service=None, parent=None):
+    def __init__(self, patient_data=None, security_service=None, staff=None, parent=None):
         super().__init__(parent)
         self.patient_data = patient_data or {}
-        self.security_service = security_service if security_service is not None else SecurityService()
-        
-        self.setWindowTitle("Send Follow-Up Check-Up Reminder")
-        self.setMinimumWidth(550)
-        self.setMinimumHeight(450)
-        
-        self.init_ui()
-
-    def init_ui(self):
+        self.security_service = security_service or SecurityService()
+        self.staff = staff or {}
+        self.setWindowTitle("Send Appointment Confirmation / Follow-Up Reminder")
+        self.setMinimumSize(560, 480)
         layout = QVBoxLayout(self)
-        layout.setSpacing(14)
-
-        # Header instruction
-        header_label = QLabel("Compose Follow-Up Email Reminder")
-        header_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #123B70;")
-        layout.addWidget(header_label)
-
-        form_layout = QFormLayout()
-        form_layout.setSpacing(10)
-
-        # Patient info fields
-        self.patient_name = QLineEdit(self.patient_data.get("full_name", ""))
-        self.patient_email = QLineEdit(self.patient_data.get("email", ""))
-        self.appointment_date = QLineEdit(self.patient_data.get("next_appointment", ""))
-
-        form_layout.addRow("Patient Name:", self.patient_name)
-        form_layout.addRow("Patient Email:", self.patient_email)
-        form_layout.addRow("Scheduled Date:", self.appointment_date)
-
-        # Subject and body
-        self.subject_input = QLineEdit("Reminder: Upcoming ARV Follow-Up & Medication Refill")
+        title = QLabel("Appointment Confirmation / Follow-Up Reminder")
+        title.setStyleSheet("font-size:15px;font-weight:bold;color:#123B70;")
+        layout.addWidget(title)
+        form = QFormLayout()
+        self.patient_name = QLineEdit(str(self.patient_data.get("full_name", "")))
+        self.patient_email = QLineEdit(str(self.patient_data.get("email", "")))
+        self.appointment_date = QLineEdit(str(self.patient_data.get("next_appointment", "")))
+        self.subject_input = QLineEdit("Appointment Reminder")
         self.body_input = QTextEdit()
-        
-        # Template for professional email
-        name = self.patient_name.text() or "Valued Patient"
-        date = self.appointment_date.text() or "your scheduled date"
-        
+        name = self.patient_name.text().strip() or "Patient"
+        date = self.appointment_date.text().strip() or "your scheduled date"
+        # Keep subject/body discreet: do not expose HIV status or treatment details.
         self.body_input.setPlainText(
-            f"Dear {name},\n\n"
-            "This is a gentle reminder from the HIV ARV Management System regarding your upcoming "
-            f"follow-up check-up and medication refill scheduled for {date}.\n\n"
-            "Please ensure you arrive on time at the clinic. If you need to reschedule your "
-            "appointment or have any questions regarding your treatment regimen, please contact "
-            "our clinic staff immediately.\n\n"
-            "Stay safe and take care,\n\n"
-            "HIV ARV Management System"
+            f"Dear {name},\n\nThis is a reminder from your clinic about your upcoming appointment on {date}.\n\n"
+            "If you need to confirm or reschedule, please contact the clinic directly.\n\n"
+            "Thank you,\nClinic Staff"
         )
-
-        form_layout.addRow("Subject:", self.subject_input)
-        form_layout.addRow("Message Body:", self.body_input)
-
-        layout.addLayout(form_layout)
-
-        # Buttons
-        btn_layout = QHBoxLayout()
+        form.addRow("Patient Name:", self.patient_name)
+        form.addRow("Patient Email:", self.patient_email)
+        form.addRow("Appointment Date:", self.appointment_date)
+        form.addRow("Email Subject:", self.subject_input)
+        form.addRow("Message:", self.body_input)
+        layout.addLayout(form)
+        note = QLabel("Email is optional. If no address is available, use the printable appointment record instead.")
+        note.setWordWrap(True)
+        note.setStyleSheet("color:#64748B;font-size:11px;")
+        layout.addWidget(note)
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        cancel = QPushButton("Cancel")
+        cancel.clicked.connect(self.reject)
         self.send_btn = QPushButton("Send Email")
         self.send_btn.setObjectName("primaryButton")
         self.send_btn.clicked.connect(self.send_email)
-        
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(self.reject)
-
-        btn_layout.addStretch()
-        btn_layout.addWidget(cancel_btn)
-        btn_layout.addWidget(self.send_btn)
-        layout.addLayout(btn_layout)
+        buttons.addWidget(cancel)
+        buttons.addWidget(self.send_btn)
+        layout.addLayout(buttons)
 
     def send_email(self):
         recipient = self.patient_email.text().strip()
-        if not recipient:
-            QMessageBox.warning(self, "Validation Error", "Patient email address cannot be empty.")
+        if not recipient or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", recipient):
+            QMessageBox.warning(self, "Invalid Email", "Enter a valid patient email address.")
             return
-
         subject = self.subject_input.text().strip()
         body = self.body_input.toPlainText().strip()
-
-        # SMTP Server Config
-        smtp_server = "smtp.gmail.com"
-        smtp_port = 587
-        sender_email = "your_clinic_email@gmail.com"
-        sender_password = "your_app_password"  # Use environment variable or secure config in production
-
+        if not subject or not body:
+            QMessageBox.warning(self, "Incomplete Message", "Subject and message are required.")
+            return
+        host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         try:
-            # Construct MIME message
-            msg = MIMEMultipart()
-            msg['From'] = sender_email
-            msg['To'] = recipient
-            msg['Subject'] = subject
-            msg.attach(MIMEText(body, 'plain'))
-
-            # NOTE: For testing purposes, this block is commented out. Uncomment to send actual emails. Don't uncomment this.
-            # server = smtplib.SMTP(smtp_server, smtp_port) # Makes the connection
-            # server.starttls() # Encrypted TLS connection.
-            # server.login(sender_email, sender_password) # Authenticate sender.
-            # server.send_message(msg)
-            # server.quit()
-
-            patient_id = self.patient_data.get("patient_id", "PATIENT-GEN")
-            summary = f"Sent follow-up reminder email to {recipient}"
-            
-            self.security_service.log_patient_edit(
-                patient_id=patient_id,
-                username="SystemStaff",
-                staff_id="STF-001",
-                full_name="Clinic Staff",
-                action_type="SEND_EMAIL",
-                changes_summary=summary,
+            port = int(os.getenv("SMTP_PORT", "587"))
+        except ValueError:
+            QMessageBox.warning(self, "SMTP Configuration", "SMTP_PORT must be a number.")
+            return
+        sender = os.getenv("SMTP_USERNAME", "").strip()
+        password = os.getenv("SMTP_PASSWORD", "")
+        from_address = os.getenv("SMTP_FROM", sender).strip()
+        if not sender or not password or not from_address:
+            QMessageBox.warning(
+                self, "Email Not Configured",
+                "Email sending is not configured yet. Set SMTP_USERNAME, SMTP_PASSWORD, "
+                "and optionally SMTP_FROM in Windows environment variables, then restart the app."
+            )
+            return
+        message = EmailMessage()
+        message["From"] = from_address
+        message["To"] = recipient
+        message["Subject"] = subject
+        message.set_content(body)
+        try:
+            with smtplib.SMTP(host, port, timeout=20) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(sender, password)
+                server.send_message(message)
+            staff = self.staff or {}
+            self.security_service.log_service_edit(
+                service_name="follow_up_email",
+                record_id=self.patient_data.get("patient_id", ""),
+                action_type="EMAIL_SENT",
+                changes_summary=f"Appointment reminder email sent to {recipient}",
+                username=staff.get("username", "System"),
+                staff_id=staff.get("staff_id", "System"),
+                full_name=staff.get("full_name", "System"),
                 new_data={"recipient": recipient, "subject": subject}
             )
-
-            QMessageBox.information(self, "Success", f"Follow-up reminder email successfully sent to:\n{recipient}")
+            QMessageBox.information(self, "Email Sent", f"The reminder was successfully sent to {recipient}.")
             self.accept()
-
-        except Exception as e:
-            QMessageBox.critical(self, "Transmission Error", f"Failed to send email. Error details:\n{str(e)}")
+        except (OSError, smtplib.SMTPException) as exc:
+            QMessageBox.critical(self, "Email Delivery Failed", f"The email was not sent.\n\n{exc}")

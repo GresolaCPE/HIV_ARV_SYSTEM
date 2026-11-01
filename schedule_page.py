@@ -1,5 +1,7 @@
 from PyQt6.QtCore import Qt, QDate
-from PyQt6.QtGui import QTextCharFormat, QColor, QBrush
+from PyQt6.QtGui import QTextCharFormat, QColor, QBrush, QTextDocument
+from PyQt6.QtPrintSupport import QPrinter
+from PyQt6.QtCore import QMarginsF
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -15,7 +17,8 @@ from PyQt6.QtWidgets import (
     QDateEdit,
     QTextEdit,
     QMessageBox,
-    QFormLayout
+    QFormLayout,
+    QFileDialog
 )
 
 from schedule_service import ScheduleService
@@ -148,6 +151,9 @@ class SchedulePage(QWidget):
         self.email_button = QPushButton("Send Follow-Up Email")
         self.email_button.setObjectName("primaryButton")
         self.email_button.clicked.connect(self.open_follow_up_email_dialog)
+
+        self.print_button = QPushButton("Print Appointment")
+        self.print_button.clicked.connect(self.print_appointment)
         
         self.clear_button = QPushButton("Clear Appointment Date")
         self.clear_button.setObjectName("linkButton")
@@ -157,6 +163,7 @@ class SchedulePage(QWidget):
 
         button_layout.addWidget(self.save_button)
         button_layout.addWidget(self.email_button)
+        button_layout.addWidget(self.print_button)
         button_layout.addWidget(self.clear_button)
         details_layout.addLayout(button_layout)
 
@@ -400,6 +407,39 @@ class SchedulePage(QWidget):
         if self.on_change:
             self.on_change()
 
+    def print_appointment(self):
+        if not self.selected_patient:
+            QMessageBox.warning(self, "No Patient Selected", "Select a patient first.")
+            return
+        patient = self.selected_patient
+        appointment = self.appointment_date.date().toString("yyyy-MM-dd")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Printable Appointment", f"Appointment_{self.get_patient_id(patient)}.pdf", "PDF Files (*.pdf)"
+        )
+        if not path:
+            return
+        if not path.lower().endswith(".pdf"):
+            path += ".pdf"
+        def esc(value):
+            return (str(value or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+        html = f"""<html><head><style>body{{font-family:Arial;color:#17365D}}h1{{color:#123B70}}table{{border-collapse:collapse;width:100%}}td{{padding:9px;border:1px solid #CBD5E1}}td:first-child{{font-weight:bold;background:#EFF6FF;width:32%}}</style></head><body>
+        <h1>Patient Appointment Record</h1><p>HIV ARV Allocation and Management System</p><table>
+        <tr><td>Patient ID</td><td>{esc(self.get_patient_id(patient))}</td></tr>
+        <tr><td>Patient Name</td><td>{esc(patient.get('full_name'))}</td></tr>
+        <tr><td>Appointment Date</td><td>{esc(appointment)}</td></tr>
+        <tr><td>Attending Physician</td><td>{esc(patient.get('attending_physician'))}</td></tr>
+        <tr><td>Contact Number</td><td>{esc(patient.get('contact_number')) or 'Not provided'}</td></tr>
+        <tr><td>Email</td><td>{esc(patient.get('email')) or 'Not provided'}</td></tr>
+        <tr><td>Follow-up Notes</td><td>{esc(self.follow_up_notes.toPlainText()) or 'None'}</td></tr>
+        </table><p><small>Confidential patient information. Handle and store securely.</small></p></body></html>"""
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+        printer.setOutputFileName(path)
+        document = QTextDocument()
+        document.setHtml(html)
+        document.print(printer)
+        QMessageBox.information(self, "PDF Saved", f"Printable appointment record saved to:\n{path}")
+
     def open_follow_up_email_dialog(self):
         if not self.selected_patient:
             QMessageBox.warning(
@@ -409,9 +449,16 @@ class SchedulePage(QWidget):
             )
             return
 
+        if not self.selected_patient.get("email"):
+            QMessageBox.information(
+                self, "No Email on File",
+                "This patient has no email address. You can still print the appointment details from the Report section."
+            )
+            return
         dialog = FollowUpEmailDialog(
             patient_data=self.selected_patient,
             security_service=self.schedule_service.security_service,
+            staff=self.user,
             parent=self
         )
         dialog.exec()

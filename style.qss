@@ -451,8 +451,31 @@ QCalendarWidget QToolButton {
     color: #FFFFFF;
     border: none;
     border-radius: 6px;
-    padding: 6px 10px;
+    padding: 5px 22px 5px 10px;
+    min-height: 28px;
     font-weight: bold;
+    text-align: center;
+}
+
+/* Keep the month/year menu chevron inside the button, aligned to its right edge. */
+QCalendarWidget QToolButton::menu-indicator {
+    subcontrol-origin: padding;
+    subcontrol-position: right center;
+    right: 5px;
+    bottom: 0px;
+    width: 10px;
+    height: 10px;
+}
+
+QCalendarWidget QToolButton#qt_calendar_prevmonth,
+QCalendarWidget QToolButton#qt_calendar_nextmonth {
+    padding: 4px;
+    min-width: 28px;
+}
+
+QCalendarWidget QToolButton#qt_calendar_monthbutton,
+QCalendarWidget QToolButton#qt_calendar_yearbutton {
+    padding-right: 22px;
 }
 
 QCalendarWidget QToolButton:hover {
@@ -634,4 +657,119 @@ QTextEdit#reportPreview {
     border: 1px solid #CBD5E1;
     border-radius: 10px;
     padding: 6px;
+}
+
+
+/* Consistent dropdown arrow placement across all combo boxes */
+QComboBox {
+    background-color: #FFFFFF;
+    color: #17365D;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 8px 34px 8px 10px;
+    min-height: 22px;
+    text-align: left;
+}
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 30px;
+    border-left: 1px solid #D7E1EE;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    background: #F1F5FB;
+}
+QComboBox::down-arrow {
+    width: 9px;
+    height: 9px;
+}
+QComboBox QAbstractItemView {
+    background: #FFFFFF;
+    color: #17365D;
+    border: 1px solid #CBD5E1;
+    selection-background-color: #DBEAFE;
+    selection-color: #123B70;
+    outline: 0;
+}
+QPushButton#profileButton {
+    background: rgba(255,255,255,0.12);
+    color: #FFFFFF;
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 7px;
+    padding: 8px 10px;
+    text-align: left;
+}
+QPushButton#profileButton:hover { background: rgba(255,255,255,0.22); }
+
+
+/* Dashboard profile shortcut */
+QPushButton#profileQuickAction {
+    background-color: #EEF4FC;
+    color: #123B70;
+    border: 1px solid #C7D8EE;
+    border-radius: 8px;
+    padding: 10px 14px;
+    min-height: 22px;
+    text-align: left;
+    font-weight: 600;
+}
+QPushButton#profileQuickAction:hover {
+    background-color: #DCEBFF;
+    border-color: #8FB5E5;
+}
+QPushButton#profileQuickAction:pressed {
+    background-color: #C9DDF7;
+}
+
+
+/* FINAL CONTROL POLISH: consistent dropdown geometry and chevron alignment */
+QComboBox, QDateEdit {
+    padding: 8px 38px 8px 12px;
+    min-height: 24px;
+    border: 1px solid #C9D6E8;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    color: #17365D;
+}
+QComboBox:focus, QDateEdit:focus {
+    border: 2px solid #2563EB;
+}
+QComboBox::drop-down, QDateEdit::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 32px;
+    margin: 1px;
+    border: none;
+    border-left: 1px solid #E1E8F0;
+    border-top-right-radius: 7px;
+    border-bottom-right-radius: 7px;
+    background-color: #F5F8FC;
+}
+QComboBox::drop-down:hover, QDateEdit::drop-down:hover {
+    background-color: #EAF2FF;
+}
+QComboBox::down-arrow, QDateEdit::down-arrow {
+    image: url(dropdown-chevron.svg);
+    width: 12px;
+    height: 8px;
+}
+QDateEdit::up-button, QDateEdit::down-button {
+    subcontrol-origin: border;
+    width: 0px;
+    height: 0px;
+    border: none;
+}
+QComboBox QAbstractItemView {
+    background-color: #FFFFFF;
+    color: #17365D;
+    border: 1px solid #C9D6E8;
+    border-radius: 6px;
+    selection-background-color: #E5EFFB;
+    selection-color: #123B70;
+    outline: none;
+    padding: 4px;
+}
+QComboBox QAbstractItemView::item {
+    min-height: 28px;
+    padding: 5px 9px;
 }

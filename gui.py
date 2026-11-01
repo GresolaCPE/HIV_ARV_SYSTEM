@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (
     QDateEdit,
     QScrollArea
 )
-from PyQt6.QtGui import QIntValidator, QTextDocument, QPageLayout, QPageSize
+from PyQt6.QtGui import QIntValidator, QTextDocument, QPageLayout, QPageSize, QPixmap, QPainter, QPainterPath
 from PyQt6.QtPrintSupport import QPrinter
 
 from backend.auth_service import AuthService
@@ -91,6 +91,30 @@ def polish_forms(widget):
         form.setVerticalSpacing(12)
         form.setHorizontalSpacing(18)
         form.setContentsMargins(18, 16, 18, 16)
+
+
+def make_circular_pixmap(path, size):
+    """Load an image, center-crop it, and return a circular avatar pixmap."""
+    source = QPixmap(path)
+    if source.isNull():
+        return QPixmap()
+    square = source.scaled(
+        size, size, Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+        Qt.TransformationMode.SmoothTransformation
+    )
+    x = max(0, (square.width() - size) // 2)
+    y = max(0, (square.height() - size) // 2)
+    square = square.copy(x, y, size, size)
+    result = QPixmap(size, size)
+    result.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(result)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    path_shape = QPainterPath()
+    path_shape.addEllipse(0, 0, size, size)
+    painter.setClipPath(path_shape)
+    painter.drawPixmap(0, 0, square)
+    painter.end()
+    return result
 
 
 class LoginWindow(QWidget):
@@ -497,6 +521,9 @@ class PatientRegistrationDialog(QDialog):
         self.contact_number = QLineEdit()
         self.contact_number.setPlaceholderText("Contact number")
 
+        self.email = QLineEdit()
+        self.email.setPlaceholderText("Patient email (optional)")
+
         self.address = QTextEdit()
         self.address.setMaximumHeight(75)
         self.address.setPlaceholderText("Address")
@@ -524,6 +551,7 @@ class PatientRegistrationDialog(QDialog):
         personal_form.addRow("Date of Birth *:", self.date_of_birth)
         personal_form.addRow("Sex:", self.sex)
         personal_form.addRow("Contact Number:", self.contact_number)
+        personal_form.addRow("Email Address (optional):", self.email)
         personal_form.addRow("Address:", self.address)
         personal_form.addRow(
             "Emergency Contact:", self.emergency_contact
@@ -682,6 +710,7 @@ class PatientRegistrationDialog(QDialog):
             self.contact_number.setText(
                 str(self.patient.get("contact_number", ""))
             )
+            self.email.setText(str(self.patient.get("email", "")))
             self.address.setPlainText(
                 str(self.patient.get("address", ""))
             )
@@ -787,6 +816,7 @@ class PatientRegistrationDialog(QDialog):
             "date_of_birth": self.date_of_birth.date().toString("yyyy-MM-dd"),
             "sex": self.sex.currentText(),
             "contact_number": self.contact_number.text().strip(),
+            "email": self.email.text().strip(),
             "address": self.address.toPlainText().strip(),
             "emergency_contact": self.emergency_contact.text().strip(),
             "emergency_relationship": relationship,
@@ -963,6 +993,107 @@ class MedicineDialog(QDialog):
         }
    
 
+class StaffProfileDialog(QDialog):
+    """View and update the currently signed-in staff profile."""
+    def __init__(self, user, parent=None):
+        super().__init__(parent)
+        self.user = user
+        self.setWindowTitle("My Staff Profile")
+        self.setMinimumWidth(430)
+        layout = QVBoxLayout(self)
+        layout.addWidget(make_dialog_header("My Staff Profile", "Manage your staff account details."))
+        form = QFormLayout()
+        self.staff_id = QLineEdit(str(user.get("staff_id", "")))
+        self.staff_id.setReadOnly(True)
+        self.username = QLineEdit(str(user.get("username", "")))
+        self.username.setReadOnly(True)
+        self.full_name = QLineEdit(str(user.get("full_name", "")))
+        form.addRow("Staff ID:", self.staff_id)
+        form.addRow("Username:", self.username)
+        form.addRow("Full Name:", self.full_name)
+        layout.addLayout(form)
+
+        photo_section = QVBoxLayout()
+        photo_section.addWidget(QLabel("Profile Picture"))
+        self.photo_preview = QLabel()
+        self.photo_preview.setFixedSize(112, 112)
+        self.photo_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.photo_preview.setStyleSheet(
+            "QLabel { background:#E8EEF6; border:2px solid #C7D6E8; "
+            "border-radius:56px; color:#315477; font-size:12px; }"
+        )
+        self.pending_photo_path = ""
+        self._load_photo_preview(user.get("profile_picture", ""))
+        photo_section.addWidget(self.photo_preview, 0, Qt.AlignmentFlag.AlignHCenter)
+        choose_photo = QPushButton("Choose Profile Picture")
+        choose_photo.clicked.connect(self.choose_profile_picture)
+        photo_section.addWidget(choose_photo)
+        layout.addLayout(photo_section)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.save_profile)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _load_photo_preview(self, photo_path):
+        if photo_path and os.path.isfile(photo_path):
+            pixmap = QPixmap(photo_path)
+            if not pixmap.isNull():
+                self.photo_preview.setPixmap(make_circular_pixmap(photo_path, 104))
+                self.photo_preview.setText("")
+                return
+        self.photo_preview.setPixmap(QPixmap())
+        self.photo_preview.setText("No photo")
+
+    def choose_profile_picture(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Choose Staff Profile Picture", "",
+            "Image Files (*.png *.jpg *.jpeg *.bmp)"
+        )
+        if path:
+            self.pending_photo_path = path
+            self._load_photo_preview(path)
+
+    def save_profile(self):
+        name = self.full_name.text().strip()
+        if not name:
+            QMessageBox.warning(self, "Required", "Full name cannot be empty.")
+            return
+        from backend.storage import JSONStorage
+        storage = JSONStorage()
+        users = storage.load("users.json")
+        target = next((u for u in users if u.get("staff_id") == self.user.get("staff_id")), None)
+        if target is None:
+            QMessageBox.warning(self, "Profile Not Found", "Your account could not be found in local storage.")
+            return
+        target["full_name"] = name
+        if self.pending_photo_path:
+            try:
+                from backend.storage import DATA_DIR
+                import shutil
+                profile_dir = DATA_DIR / "staff_profiles"
+                profile_dir.mkdir(parents=True, exist_ok=True)
+                extension = os.path.splitext(self.pending_photo_path)[1].lower()
+                if extension not in (".png", ".jpg", ".jpeg", ".bmp"):
+                    QMessageBox.warning(self, "Unsupported Image",
+                                        "Please choose a PNG, JPG, or BMP image.")
+                    return
+                safe_staff_id = "".join(
+                    ch for ch in str(self.user.get("staff_id", "staff"))
+                    if ch.isalnum() or ch in ("-", "_")
+                )
+                destination = profile_dir / f"{safe_staff_id}{extension}"
+                shutil.copy2(self.pending_photo_path, destination)
+                target["profile_picture"] = str(destination)
+                self.user["profile_picture"] = str(destination)
+            except OSError as exc:
+                QMessageBox.warning(self, "Photo Could Not Be Saved", str(exc))
+                return
+        storage.save("users.json", users)
+        self.user["full_name"] = name
+        self.accept()
+
+
 class DashboardWindow(QMainWindow):
 
     def __init__(self, user):
@@ -1056,8 +1187,15 @@ class DashboardWindow(QMainWindow):
         staff_id.setObjectName("staffDetails")
         staff_id.setWordWrap(True)
 
+        self.sidebar_staff_name = staff_name
         sidebar_layout.addWidget(staff_name)
         sidebar_layout.addWidget(staff_id)
+
+        profile_button = QPushButton("My Profile  ·  ⚙")
+        profile_button.setObjectName("profileButton")
+        profile_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        profile_button.clicked.connect(self.open_staff_profile)
+        sidebar_layout.addWidget(profile_button)
 
         # SIGN OUT
         sign_out_button = QPushButton("Sign Out")
@@ -1123,6 +1261,31 @@ class DashboardWindow(QMainWindow):
 
         self.change_page(0)
 
+    def refresh_dashboard_profile_photo(self):
+        label = getattr(self, "dashboard_profile_photo", None)
+        if label is None:
+            return
+        photo_path = self.user.get("profile_picture", "")
+        if photo_path and os.path.isfile(photo_path):
+            pixmap = QPixmap(photo_path)
+            if not pixmap.isNull():
+                label.setPixmap(make_circular_pixmap(photo_path, 72))
+                label.setText("")
+                return
+        label.setPixmap(QPixmap())
+        initials = "".join(
+            part[0] for part in self.user.get("full_name", "Staff").split()
+            if part
+        )[:2].upper() or "ST"
+        label.setText(initials)
+
+    def open_staff_profile(self):
+        dialog = StaffProfileDialog(self.user, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.sidebar_staff_name.setText(self.user.get("full_name", "Staff"))
+            self.refresh_dashboard_profile_photo()
+            self.refresh_dashboard_schedule()
+
     def sign_out(self):
         self.close()
         self.login_window = LoginWindow()
@@ -1140,21 +1303,44 @@ class DashboardWindow(QMainWindow):
         hero = QFrame()
         hero.setObjectName("heroBanner")
         hero_layout = QHBoxLayout(hero)
-        hero_layout.setContentsMargins(26, 22, 26, 22)
+        hero_layout.setContentsMargins(26, 16, 26, 16)
+        hero_layout.setSpacing(6)
+
+        self.dashboard_profile_photo = QLabel()
+        self.dashboard_profile_photo.setFixedSize(76, 76)
+        self.dashboard_profile_photo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.dashboard_profile_photo.setStyleSheet(
+            "QLabel { background:#DCE8F5; border:2px solid #FFFFFF; "
+            "border-radius:38px; color:#17416D; font-size:11px; }"
+        )
+        self.dashboard_profile_photo.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.dashboard_profile_photo.mousePressEvent = (
+            lambda event: self.open_staff_profile()
+        )
+        self.refresh_dashboard_profile_photo()
+        hero_layout.addWidget(self.dashboard_profile_photo,
+                              0, Qt.AlignmentFlag.AlignVCenter)
 
         hero_text = QVBoxLayout()
-        hero_text.setSpacing(4)
+        hero_text.setContentsMargins(0, 0, 0, 0)
+        hero_text.setSpacing(0)
+        # Vertically center the welcome text block beside the circular staff photo.
+        hero_text.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         welcome_title = QLabel(
             "Welcome back, " + self.user.get("full_name", "Staff")
         )
         welcome_title.setObjectName("heroTitle")
+        welcome_title.setContentsMargins(0, 0, 0, 0)
+        welcome_title.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         welcome_description = QLabel(
             "Here's an overview of your patient records and system activities."
         )
         welcome_description.setObjectName("heroText")
         welcome_description.setWordWrap(True)
+        welcome_description.setContentsMargins(0, 0, 0, 0)
+        welcome_description.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         hero_text.addWidget(welcome_title)
         hero_text.addWidget(welcome_description)
@@ -1326,6 +1512,13 @@ class DashboardWindow(QMainWindow):
             actions_layout.addWidget(button)
 
         quick_layout.addLayout(actions_layout)
+
+        profile_action = QPushButton("My Staff Profile  ·  View / Update Account")
+        profile_action.setObjectName("profileQuickAction")
+        profile_action.setCursor(Qt.CursorShape.PointingHandCursor)
+        profile_action.clicked.connect(self.open_staff_profile)
+        quick_layout.addWidget(profile_action)
+
         layout.addWidget(quick_card)
         layout.addStretch()
 
@@ -1518,6 +1711,21 @@ class DashboardWindow(QMainWindow):
             "Patient profile saved successfully.\n\n"
             f"Patient ID: {result['patient_id']}"
         )
+
+        # Email is optional. Offer a confirmation/reminder only when an address
+        # and a scheduled follow-up date were provided; never send silently.
+        if result.get("email") and result.get("next_appointment"):
+            reply = QMessageBox.question(
+                self, "Send Appointment Confirmation?",
+                f"A follow-up is scheduled for {result['next_appointment']}.\n\n"
+                f"Would you like to send a confirmation to {result['email']} now?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                from mail_followup import FollowUpEmailDialog
+                dialog = FollowUpEmailDialog(result, self.security_service, self.user, self)
+                dialog.exec()
 
         self.patient_search_input.clear()
         self.load_patient_records()

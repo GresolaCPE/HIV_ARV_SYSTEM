@@ -82,3 +82,20 @@ HIV_ARV_SYSTEM/
 
 The system stores patient and treatment data locally in JSON files. Use only fictional/test data during demonstrations and keep generated reports confidential.
 >>>>>>> c60eaaf1e3948c9d0f0efed65339bb58c921515e
+
+
+## Patient email and follow-up reminders
+
+The patient email field is optional. When a new patient is saved with both an email address and an appointment date, the application asks staff whether to send an appointment confirmation. In Schedule, select a patient and use **Send Follow-Up Email** to send a reminder manually. If the patient has no email address, use **Print Appointment** to save a PDF copy. No reminder is sent automatically in the background.
+
+To enable actual email delivery on Windows, configure these environment variables before starting the application:
+
+- `SMTP_USERNAME` — authenticated sender account
+- `SMTP_PASSWORD` — provider app password (never use a personal account password)
+- `SMTP_FROM` — optional sender display address; defaults to `SMTP_USERNAME`
+- `SMTP_HOST` — optional SMTP host; defaults to `smtp.gmail.com`
+- `SMTP_PORT` — optional SMTP port; defaults to `587`
+
+Email messages intentionally use discreet wording and do not disclose HIV status, diagnosis, or medication details in the subject or message. Staff must obtain the patient's permission to use the provided email address.
+
+**Staff profile:** Select **My Profile · ⚙** near the signed-in staff name in the left sidebar to view Staff ID and username and update the displayed full name.
