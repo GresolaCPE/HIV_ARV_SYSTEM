@@ -11,7 +11,6 @@ class PatientService:
         self.storage = JSONStorage()
         self.security = SecurityService(self.storage)
         self.file_name = "patients.json"
-        self._merge_legacy_patients()
 
     def _merge_legacy_patients(self):
         """One-time rescue of patients saved by older versions in <project>/data."""

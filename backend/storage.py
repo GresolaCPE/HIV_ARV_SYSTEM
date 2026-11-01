@@ -30,23 +30,31 @@ class JSONStorage:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         self._migrate_legacy_data()
 
+    
     def _migrate_legacy_data(self):
-        """Copy existing project JSON files into the persistent user data folder once.
+        """Copy existing JSON files into the persistent user data folder."""
 
-        Existing persistent files always win, so updating/re-extracting the project
-        will never overwrite accounts or records already saved by the application.
-        """
-        if not LEGACY_DATA_DIR.exists():
-            return
-        for source in LEGACY_DATA_DIR.glob("*.json"):
-            destination = DATA_DIR / source.name
-            if not destination.exists():
-                try:
-                    shutil.copy2(source, destination)
-                except OSError:
-                    # If migration of one file fails, the app can still initialize;
-                    # loading that file will create its default data file if needed.
-                    pass
+        # Migrate JSON files from the original data folder.
+        if LEGACY_DATA_DIR.exists():
+            for source in LEGACY_DATA_DIR.glob("*.json"):
+                destination = DATA_DIR / source.name
+
+                if not destination.exists():
+                    try:
+                        shutil.copy2(source, destination)
+                    except OSError:
+                        pass
+
+        # Migrate the original root inventory file, if present.
+        legacy_inventory = PROJECT_DIR / "inventory_data.json"
+        destination = DATA_DIR / "inventory_data.json"
+
+        if legacy_inventory.exists() and not destination.exists():
+            try:
+                shutil.copy2(legacy_inventory, destination)
+            except OSError:
+                pass
+
 
     def load(self, filename):
         file_path = DATA_DIR / filename

@@ -1,4 +1,4 @@
-import os
+import os, sys
 
 from PyQt6.QtCore import Qt, QDate, QMarginsF
 from PyQt6.QtWidgets import (
@@ -45,11 +45,13 @@ import report_html
 
 
 def load_stylesheet():
-    """Load the separate QSS stylesheet."""
-    style_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "style.qss"
-    )
+    """Load the stylesheet in development and packaged versions."""
+    if hasattr(sys, "_MEIPASS"):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+
+    style_path = os.path.join(base_path, "style.qss")
 
     try:
         with open(style_path, "r", encoding="utf-8") as file:
@@ -58,7 +60,7 @@ def load_stylesheet():
         QMessageBox.warning(
             None,
             "Stylesheet Missing",
-            "style.qss was not found. Please check your project folder."
+            "style.qss was not found. Please check your application files."
         )
         return ""
 

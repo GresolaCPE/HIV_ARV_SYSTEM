@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import date, datetime
-from backend.storage import JSONStorage
+from backend.storage import JSONStorage, DATA_DIR
 from backend.security_service import SecurityService
 
 
@@ -11,11 +11,8 @@ class InventoryService:
         self.storage = storage or JSONStorage()
         self.security = security_service or SecurityService(self.storage)
         
-        # Store inventory data in the backend folder.
-        self.data_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "inventory_data.json"
-        )
+        # Store inventory data in the persistent application data folder.
+        self.data_file = str(DATA_DIR / "inventory_data.json")
 
         self._ensure_data_file()
 

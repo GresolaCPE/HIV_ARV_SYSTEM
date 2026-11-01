@@ -8,7 +8,7 @@ class ScheduleService:
     def __init__(self):
         self.patient_service = PatientService()
         self.storage = JSONStorage()
-
+        3
         self.security_service = SecurityService(self.storage)
 
     def get_all_patients(self):
