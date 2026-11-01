@@ -1,0 +1,22 @@
+[
+    {
+        "medicine_id": "MED-0001",
+        "medicine_name": "Paracetamol",
+        "strength": "500",
+        "batch_number": "001",
+        "quantity": 50,
+        "expiry_date": "2026-12-25",
+        "low_stock_threshold": 20,
+        "date_added": "2026-10-24"
+    },
+    {
+        "medicine_id": "MED-0002",
+        "medicine_name": "Ceterizine",
+        "strength": "50",
+        "batch_number": "002",
+        "quantity": 23,
+        "expiry_date": "2028-08-12",
+        "low_stock_threshold": 20,
+        "date_added": "2026-10-24"
+    }
+]
