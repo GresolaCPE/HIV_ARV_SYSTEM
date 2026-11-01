@@ -4,3 +4,18 @@ __pycache__/
 *.py[cod]
 .env
 data/
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Testing packages
+HIV_ARV_SYSTEM_CLEAN_TEST.zip
+HIV_ARV_SYSTEM_TestBuild.zip
+
+# Local backups
+data_backup/
+
+# Generated reports
+system_report.pdf
